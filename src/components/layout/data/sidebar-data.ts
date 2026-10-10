@@ -19,31 +19,31 @@ import {
   MessagesSquare,
   ShieldCheck,
   AudioWaveform,
-  Command,
   GalleryVerticalEnd,
 } from 'lucide-react'
 import { ClerkLogo } from '@/assets/clerk-logo'
+import { Logo } from '@/assets/logo' // Import logo SinhHAI chính
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
   user: {
-    name: 'satnaing',
-    email: 'satnaingdev@gmail.com',
-    avatar: '/avatars/shadcn.jpg',
+    name: 'SinhHAI Admin',
+    email: 'admin@sinhhai.com',
+    avatar: '/images/favicon.png',
   },
   teams: [
     {
-      name: 'Shadcn Admin',
-      logo: Command,
-      plan: 'Vite + ShadcnUI',
+      name: 'SinhHAI Dashboard',
+      logo: Logo,
+      plan: 'Vite + React',
     },
     {
-      name: 'Acme Inc',
+      name: 'SinhHAI Enterprise',
       logo: GalleryVerticalEnd,
       plan: 'Enterprise',
     },
     {
-      name: 'Acme Corp.',
+      name: 'SinhHAI Startup',
       logo: AudioWaveform,
       plan: 'Startup',
     },
