@@ -8,6 +8,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Button } from '../ui/button'
+import { Logo } from '@/assets/logo' // Import logo SinhHAI của bạn
 
 export function AppTitle() {
   const { setOpenMobile } = useSidebar()
@@ -16,17 +17,22 @@ export function AppTitle() {
       <SidebarMenuItem>
         <SidebarMenuButton
           size='lg'
-          className='gap-0 py-0 hover:bg-transparent active:bg-transparent'
+          className='gap-2 py-0 hover:bg-transparent active:bg-transparent'
           asChild
         >
           <div>
             <Link
               to='/'
               onClick={() => setOpenMobile(false)}
-              className='grid flex-1 text-start text-sm leading-tight'
+              className='flex items-center gap-2 flex-1 text-start leading-tight'
             >
-              <span className='truncate font-bold'>Shadcn-Admin</span>
-              <span className='truncate text-xs'>Vite + ShadcnUI</span>
+              <div className='flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground'>
+                <Logo className='size-5' />
+              </div>
+              <div className='grid flex-1 text-start text-sm leading-tight'>
+                <span className='truncate font-bold'>SinhHAI</span>
+                <span className='truncate text-xs text-muted-foreground'>Admin Dashboard</span>
+              </div>
             </Link>
             <ToggleSidebar />
           </div>
