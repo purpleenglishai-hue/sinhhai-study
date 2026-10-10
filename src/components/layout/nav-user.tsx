@@ -80,7 +80,7 @@ export function NavUser({ user }: NavUserProps) {
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem>
-                  <Sparkles />
+                  <Sparkles className='mr-2 size-4' />
                   Upgrade to Pro
                 </DropdownMenuItem>
               </DropdownMenuGroup>
@@ -88,19 +88,19 @@ export function NavUser({ user }: NavUserProps) {
               <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
                   <Link to='/settings/account'>
-                    <BadgeCheck />
+                    <BadgeCheck className='mr-2 size-4' />
                     Account
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to='/settings'>
-                    <CreditCard />
+                    <CreditCard className='mr-2 size-4' />
                     Billing
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to='/settings/notifications'>
-                    <Bell />
+                    <Bell className='mr-2 size-4' />
                     Notifications
                   </Link>
                 </DropdownMenuItem>
@@ -110,7 +110,7 @@ export function NavUser({ user }: NavUserProps) {
                 variant='destructive'
                 onClick={() => setOpen(true)}
               >
-                <LogOut />
+                <LogOut className='mr-2 size-4' />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
