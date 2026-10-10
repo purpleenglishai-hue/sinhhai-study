@@ -70,7 +70,7 @@ export function NavUser({ user }: NavUserProps) {
                   <Avatar className='h-8 w-8 rounded-lg'>
                     <AvatarImage src={user.avatar} alt={user.name} />
                     <AvatarFallback className='rounded-lg'>SH</AvatarFallback>
-                  </AvatarFallback>
+                  </Avatar>
                   <div className='grid flex-1 text-start text-sm leading-tight'>
                     <span className='truncate font-semibold'>{user.name}</span>
                     <span className='truncate text-xs'>{user.email}</span>
@@ -80,7 +80,7 @@ export function NavUser({ user }: NavUserProps) {
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem>
-                  <Sparkles className='mr-2 size-4' />
+                  <Sparkles />
                   Upgrade to Pro
                 </DropdownMenuItem>
               </DropdownMenuGroup>
@@ -88,19 +88,19 @@ export function NavUser({ user }: NavUserProps) {
               <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
                   <Link to='/settings/account'>
-                    <BadgeCheck className='mr-2 size-4' />
+                    <BadgeCheck />
                     Account
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to='/settings'>
-                    <CreditCard className='mr-2 size-4' />
+                    <CreditCard />
                     Billing
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to='/settings/notifications'>
-                    <Bell className='mr-2 size-4' />
+                    <Bell />
                     Notifications
                   </Link>
                 </DropdownMenuItem>
@@ -110,7 +110,7 @@ export function NavUser({ user }: NavUserProps) {
                 variant='destructive'
                 onClick={() => setOpen(true)}
               >
-                <LogOut className='mr-2 size-4' />
+                <LogOut />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
