@@ -7,7 +7,6 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, Plus, CheckCircle2 } from 'lucide-react'
 
 export default function CalendarPage() {
-  const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState(new Date().getDate())
 
   // Danh sách mẫu sự kiện/deadline học tập của user
