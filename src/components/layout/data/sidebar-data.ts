@@ -1,41 +1,31 @@
 import {
-  Construction,
   LayoutDashboard,
-  Monitor,
-  Bug,
   ListTodo,
-  FileX,
-  HelpCircle,
-  Lock,
-  Bell,
+  CalendarDays,
   Package,
-  Palette,
-  ServerOff,
-  Settings,
-  Wrench,
-  UserCog,
-  UserX,
+  Bot,
+  MessageSquareText,
   Users,
-  MessagesSquare,
-  ShieldCheck,
+  FolderCloud,
+  Settings,
+  HelpCircle,
   AudioWaveform,
   GalleryVerticalEnd,
 } from 'lucide-react'
-import { ClerkLogo } from '@/assets/clerk-logo'
 import { Logo } from '@/assets/logo' // Import logo SinhHAI chính
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
   user: {
-    name: 'SinhHAI Admin',
-    email: 'admin@sinhhai.com',
+    name: 'SinhHAI User',
+    email: 'user@sinhhai.study',
     avatar: '/images/favicon.png',
   },
   teams: [
     {
-      name: 'SinhHAI Dashboard',
+      name: 'SinhHAI StudyPlace',
       logo: Logo,
-      plan: 'Vite + React',
+      plan: 'Subscription Plan',
     },
     {
       name: 'SinhHAI Enterprise',
@@ -50,152 +40,66 @@ export const sidebarData: SidebarData = {
   ],
   navGroups: [
     {
-      title: 'General',
+      title: 'Học tập & Không gian',
       items: [
         {
-          title: 'Dashboard',
+          title: 'Tổng quan học tập',
           url: '/',
           icon: LayoutDashboard,
         },
         {
-          title: 'Tasks',
+          title: 'Nhiệm vụ & Deadline',
           url: '/tasks',
           icon: ListTodo,
         },
         {
-          title: 'Apps',
+          title: 'Lịch biểu học tập',
+          url: '/calendar',
+          icon: CalendarDays,
+        },
+        {
+          title: 'Công cụ & Office',
           url: '/apps',
           icon: Package,
         },
+      ],
+    },
+    {
+      title: 'Tương tác & Cộng đồng',
+      items: [
         {
-          title: 'Chats',
-          url: '/chats',
-          badge: '3',
-          icon: MessagesSquare,
+          title: 'Trợ lý AI SinhHAI',
+          url: '/ai-chat',
+          badge: '24/7',
+          icon: Bot,
         },
         {
-          title: 'Users',
+          title: 'Tin nhắn & Hỗ trợ',
+          url: '/messages',
+          icon: MessageSquareText,
+        },
+        {
+          title: 'Nhóm học tập',
           url: '/users',
           icon: Users,
         },
         {
-          title: 'Secured by Clerk',
-          icon: ClerkLogo,
-          items: [
-            {
-              title: 'Sign In',
-              url: '/clerk/sign-in',
-            },
-            {
-              title: 'Sign Up',
-              url: '/clerk/sign-up',
-            },
-            {
-              title: 'User Management',
-              url: '/clerk/user-management',
-            },
-          ],
+          title: 'Kho tài liệu (Storage)',
+          url: '/storage',
+          icon: FolderCloud,
         },
       ],
     },
     {
-      title: 'Pages',
+      title: 'Hệ thống',
       items: [
         {
-          title: 'Auth',
-          icon: ShieldCheck,
-          items: [
-            {
-              title: 'Sign In',
-              url: '/sign-in',
-            },
-            {
-              title: 'Sign In (2 Col)',
-              url: '/sign-in-2',
-            },
-            {
-              title: 'Sign Up',
-              url: '/sign-up',
-            },
-            {
-              title: 'Forgot Password',
-              url: '/forgot-password',
-            },
-            {
-              title: 'OTP',
-              url: '/otp',
-            },
-          ],
-        },
-        {
-          title: 'Errors',
-          icon: Bug,
-          items: [
-            {
-              title: 'Unauthorized',
-              url: '/errors/unauthorized',
-              icon: Lock,
-            },
-            {
-              title: 'Forbidden',
-              url: '/errors/forbidden',
-              icon: UserX,
-            },
-            {
-              title: 'Not Found',
-              url: '/errors/not-found',
-              icon: FileX,
-            },
-            {
-              title: 'Internal Server Error',
-              url: '/errors/internal-server-error',
-              icon: ServerOff,
-            },
-            {
-              title: 'Maintenance Error',
-              url: '/errors/maintenance-error',
-              icon: Construction,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Other',
-      items: [
-        {
-          title: 'Settings',
+          title: 'Cài đặt & Tài khoản',
+          url: '/settings',
           icon: Settings,
-          items: [
-            {
-              title: 'Profile',
-              url: '/settings',
-              icon: UserCog,
-            },
-            {
-              title: 'Account',
-              url: '/settings/account',
-              icon: Wrench,
-            },
-            {
-              title: 'Appearance',
-              url: '/settings/appearance',
-              icon: Palette,
-            },
-            {
-              title: 'Notifications',
-              url: '/settings/notifications',
-              icon: Bell,
-            },
-            {
-              title: 'Display',
-              url: '/settings/display',
-              icon: Monitor,
-            },
-          ],
         },
         {
-          title: 'Help Center',
+          title: 'Trợ giúp & Hướng dẫn',
           url: '/help-center',
           icon: HelpCircle,
         },
