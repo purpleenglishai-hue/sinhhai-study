@@ -1,7 +1,7 @@
 import {
   LayoutDashboard,
   ListTodo,
-  CalendarDays,
+  Calendar,
   Package,
   Bot,
   MessageSquareText,
@@ -55,7 +55,7 @@ export const sidebarData: SidebarData = {
         {
           title: 'Lịch biểu học tập',
           url: '/calendar',
-          icon: CalendarDays,
+          icon: Calendar,
         },
         {
           title: 'Công cụ & Office',
