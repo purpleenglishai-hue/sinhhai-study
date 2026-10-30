@@ -75,7 +75,7 @@ export const sidebarData: SidebarData = {
         },
         {
           title: 'Tin nhắn & Hỗ trợ',
-          url: '/chats',
+          url: '/user',
           icon: MessageSquare,
         },
         {
