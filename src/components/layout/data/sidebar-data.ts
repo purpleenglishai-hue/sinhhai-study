@@ -4,15 +4,15 @@ import {
   Calendar,
   Package,
   Bot,
-  MessageSquareText,
+  MessageSquare,
   Users,
-  FolderCloud,
+  Folder,
   Settings,
   HelpCircle,
   AudioWaveform,
   GalleryVerticalEnd,
 } from 'lucide-react'
-import { Logo } from '@/assets/logo' // Import logo SinhHAI chính
+import { Logo } from '@/assets/logo'
 import { type SidebarData } from '../types'
 
 export const sidebarData: SidebarData = {
@@ -76,7 +76,7 @@ export const sidebarData: SidebarData = {
         {
           title: 'Tin nhắn & Hỗ trợ',
           url: '/messages',
-          icon: MessageSquareText,
+          icon: MessageSquare,
         },
         {
           title: 'Nhóm học tập',
@@ -86,7 +86,7 @@ export const sidebarData: SidebarData = {
         {
           title: 'Kho tài liệu (Storage)',
           url: '/storage',
-          icon: FolderCloud,
+          icon: Folder,
         },
       ],
     },
