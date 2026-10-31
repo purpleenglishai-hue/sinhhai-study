@@ -5,22 +5,38 @@ import { Main } from '@/components/layout/main'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { getStorage, ref, uploadBytesResumable, getDownloadURL, listAll } from 'firebase/storage'
+import { initializeApp, getApps } from 'firebase/app'
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, listAll, StorageReference } from 'firebase/storage'
+
+// Cấu hình Firebase của anh (hoặc thay thế bằng file firebase config chung)
+const firebaseConfig = {
+  apiKey: "AIzaSy...", // Dùng thông tin cấu hình project Firebase của anh
+  authDomain: "purple-english-ai.firebaseapp.com",
+  projectId: "purple-english-ai",
+  storageBucket: "purple-english-ai.firebasestorage.app",
+  messagingSenderId: "...",
+  appId: "..."
+};
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+const storage = getStorage(app)
+
+interface FileItem {
+  name: string
+  url: string
+  size: string
+}
 
 function StoragePage() {
-  const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [files, setFiles] = useState<{ name: string; url: string; size: string }[]>([])
+  const [uploading, setUploading] = useState<boolean>(false)
+  const [progress, setProgress] = useState<number>(0)
+  const [files, setFiles] = useState<FileItem[]>([])
 
-  // Khởi tạo Firebase Storage (hoặc import từ file config chung của project)
-  const storage = getStorage()
-
-  // Lấy danh sách file đã tải lên từ Firebase Storage
   const fetchFiles = async () => {
     try {
       const listRef = ref(storage, 'documents/')
       const res = await listAll(listRef)
-      const filePromises = res.items.map(async (itemRef) => {
+      const filePromises = res.items.map(async (itemRef: StorageReference) => {
         const url = await getDownloadURL(itemRef)
         return { name: itemRef.name, url, size: 'N/A' }
       })
@@ -35,7 +51,6 @@ function StoragePage() {
     fetchFiles()
   }, [])
 
-  // Xử lý sự kiện chọn và upload file lên Firebase
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -50,15 +65,14 @@ function StoragePage() {
         const prog = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
         setProgress(Math.round(prog))
       },
-      (error) => {
+      (error: Error) => {
         console.error("Upload failed:", error)
         setUploading(false)
       },
       async () => {
-        await getDownloadURL(uploadTask.snapshot.ref)
         setUploading(false)
         setProgress(0)
-        fetchFiles() // Làm mới danh sách file sau khi upload thành công
+        fetchFiles()
       }
     )
   }
@@ -85,7 +99,6 @@ function StoragePage() {
           </label>
         </div>
 
-        {/* Khu vực hiển thị danh sách tài liệu */}
         <div className='bg-card border rounded-lg p-4 shadow-sm'>
           <h2 className='text-lg font-semibold mb-4'>Tài liệu đã lưu trữ</h2>
           {files.length === 0 ? (
