@@ -53,11 +53,6 @@ export const sidebarData: SidebarData = {
           icon: ListTodo,
         },
         {
-          title: 'Lịch biểu học tập',
-          url: '/calendar',
-          icon: Calendar,
-        },
-        {
           title: 'Công cụ & Office',
           url: '/apps',
           icon: Package,
