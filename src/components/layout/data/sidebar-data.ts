@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   ListTodo,
-  Calendar,
   Package,
   Bot,
   MessageSquare,
