@@ -30,6 +30,6 @@ function AiAssistantPage() {
   )
 }
 
-export const Route = createFileRoute('/_authenticated/ai-assistant' as any)({
+export const Route = createFileRoute('/_authenticated/ai-assistant')({
   component: AiAssistantPage,
 })
