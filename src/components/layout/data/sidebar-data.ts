@@ -63,13 +63,13 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: 'Trợ lý AI SinhHAI',
-          url: '/chats',
+          url: '/ai-assistant',
           badge: '24/7',
           icon: Bot,
         },
         {
           title: 'Tin nhắn & Hỗ trợ',
-          url: '/user',
+          url: '/chats',
           icon: MessageSquare,
         },
         {
