@@ -80,7 +80,7 @@ export const sidebarData: SidebarData = {
         {
           title: 'Kho tài liệu (Storage)',
           url: '/storage',
-          icon: Folder,
+          icon: FolderArchive,
         },
       ],
     },
