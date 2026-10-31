@@ -17,7 +17,6 @@ function AiAssistantPage() {
       </Header>
 
       <Main className='flex flex-col flex-1 p-0'>
-        {/* Khung nhúng NextChat SinhHAI trực tiếp vào dashboard */}
         <div className='w-full h-[calc(100vh-4rem)] bg-card overflow-hidden'>
           <iframe
             src='https://sinhhai.pages.dev'
