@@ -12,7 +12,10 @@ export function SignIn2() {
         <div className='mx-auto flex w-full flex-col justify-center space-y-2 py-8 sm:w-120 sm:p-8'>
           <div className='mb-4 flex items-center justify-center'>
             <Logo className='me-2 h-8 w-8 text-purple-600' />
-            <h1 className='text-2xl font-bold tracking-tight text-purple-700 dark:text-purple-400'>sinhHAI</h1>
+            {/* Chữ 'sinh' màu thường, chữ 'HAI' màu tím */}
+            <h1 className='text-3xl font-extrabold tracking-tight text-foreground'>
+              sinh<span className='text-purple-600 dark:text-purple-400'>HAI</span>
+            </h1>
           </div>
         </div>
         <div className='mx-auto flex w-full max-w-sm flex-col justify-center space-y-2'>
