@@ -1,83 +1,64 @@
 import { Link } from '@tanstack/react-router'
-import { cn } from '@/lib/utils'
-import dashboardDark from './assets/dashboard-dark.png'
-import dashboardLight from './assets/dashboard-light.png'
 import { UserAuthForm } from './components/user-auth-form'
 
 export function SignIn2() {
   return (
-    <div className='relative container grid h-svh flex-col items-center justify-center lg:max-w-none lg:grid-cols-2 lg:px-0'>
-      <div className='lg:p-8'>
-        <div className='mx-auto flex w-full flex-col justify-center space-y-2 py-8 sm:w-120 sm:p-8'>
-          <div className='mb-4 flex items-center justify-center gap-2'>
-            {/* Gọi đúng Logo từ thư mục public của anh */}
-            <img 
-              src='/logo.png' 
-              alt='sinhHAI Logo' 
-              className='h-9 w-9 object-contain' 
-            />
+    <div className='relative flex min-h-svh flex-col items-center justify-center bg-background px-4 py-6'>
+      <div className='w-full max-w-md space-y-6'>
+        
+        {/* Khu vực Logo & Tên thương hiệu sinhHAI chính giữa */}
+        <div className='flex flex-col items-center justify-center space-y-2 text-center'>
+          <div className='flex items-center justify-center gap-3'>
+            {/* Logo thương hiệu (nếu file ảnh chưa khớp, hiển thị icon thay thế an toàn hoặc gọi đúng tên file trong public) */}
+            <div className='flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 font-bold text-xl'>
+              SH
+            </div>
             {/* Tên thương hiệu: sinh (thường) + HAI (tím nổi bật) */}
             <h1 className='text-3xl font-extrabold tracking-tight text-foreground'>
               sinh<span className='text-purple-600 dark:text-purple-400'>HAI</span>
             </h1>
           </div>
         </div>
-        <div className='mx-auto flex w-full max-w-sm flex-col justify-center space-y-2'>
-          <div className='flex flex-col space-y-2 text-start'>
-            <h2 className='text-lg font-semibold tracking-tight'>Sign in</h2>
+
+        {/* Khung chứa Form đăng nhập trung tâm */}
+        <div className='rounded-2xl border bg-card p-6 shadow-sm sm:p-8'>
+          <div className='flex flex-col space-y-2 text-start mb-6'>
+            <h2 className='text-xl font-semibold tracking-tight'>Sign in</h2>
             <p className='text-sm text-muted-foreground'>
-              Enter your email and password below to log into{' '}
-              <br className='max-sm:hidden' /> your account. Don't have an
-              account?{' '}
+              Enter your email and password below to log into your account.{' '}
+              Don't have an account?{' '}
               <Link
                 to='/sign-up'
-                className='text-nowrap underline underline-offset-4 hover:text-primary'
+                className='text-nowrap underline underline-offset-4 hover:text-primary font-medium text-foreground'
               >
                 Sign Up
               </Link>
             </p>
           </div>
-          <UserAuthForm />
-          <p className='px-8 text-center text-sm text-muted-foreground'>
-            By clicking sign in, you agree to our{' '}
-            <a
-              href='/terms'
-              className='underline underline-offset-4 hover:text-primary'
-            >
-              Terms of Service
-            </a>{' '}
-            and{' '}
-            <a
-              href='/privacy'
-              className='underline underline-offset-4 hover:text-primary'
-            >
-              Privacy Policy
-            </a>
-            .
-          </p>
-        </div>
-      </div>
 
-      <div
-        className={cn(
-          'relative h-full overflow-hidden bg-muted max-lg:hidden',
-          '[&>img]:absolute [&>img]:top-[15%] [&>img]:left-20 [&>img]:h-full [&>img]:w-full [&>img]:object-cover [&>img]:object-top-left [&>img]:select-none'
-        )}
-      >
-        <img
-          src={dashboardLight}
-          className='dark:hidden'
-          width={1024}
-          height={1151}
-          alt='sinhHAI-Dashboard'
-        />
-        <img
-          src={dashboardDark}
-          className='hidden dark:block'
-          width={1024}
-          height={1138}
-          alt='sinhHAI-Dashboard'
-        />
+          <UserAuthForm />
+
+          <div className='mt-6 text-center'>
+            <p className='text-xs text-muted-foreground'>
+              By clicking sign in, you agree to our{' '}
+              <a
+                href='/terms'
+                className='underline underline-offset-4 hover:text-primary'
+              >
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a
+                href='/privacy'
+                className='underline underline-offset-4 hover:text-primary'
+              >
+                Privacy Policy
+              </a>
+              .
+            </p>
+          </div>
+        </div>
+
       </div>
     </div>
   )
