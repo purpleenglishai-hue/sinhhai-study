@@ -1,19 +1,20 @@
 import { Link } from '@tanstack/react-router'
+import { cn } from '@/lib/utils'
+import dashboardDark from './assets/dashboard-dark.png'
+import dashboardLight from './assets/dashboard-light.png'
 import { UserAuthForm } from './components/user-auth-form'
 
 export function SignIn2() {
   return (
-    <div className='relative container flex h-svh flex-col items-center justify-center px-4'>
-      <div className='mx-auto flex w-full max-w-md flex-col justify-center space-y-6'>
-        
-        {/* Phần Logo & Tên thương hiệu sinhHAI */}
-        <div className='flex flex-col items-center space-y-2 text-center'>
-          <div className='flex items-center justify-center gap-2'>
-            {/* Logo hình trái thông / biểu tượng của anh (đặt trong thư mục public) */}
+    <div className='relative container grid h-svh flex-col items-center justify-center lg:max-w-none lg:grid-cols-2 lg:px-0'>
+      <div className='lg:p-8'>
+        <div className='mx-auto flex w-full flex-col justify-center space-y-2 py-8 sm:w-120 sm:p-8'>
+          <div className='mb-4 flex items-center justify-center gap-2'>
+            {/* Gọi đúng Logo từ thư mục public của anh */}
             <img 
               src='/logo.png' 
               alt='sinhHAI Logo' 
-              className='h-10 w-10 object-contain' 
+              className='h-9 w-9 object-contain' 
             />
             {/* Tên thương hiệu: sinh (thường) + HAI (tím nổi bật) */}
             <h1 className='text-3xl font-extrabold tracking-tight text-foreground'>
@@ -21,14 +22,13 @@ export function SignIn2() {
             </h1>
           </div>
         </div>
-
-        {/* Khung Form Đăng nhập chính giữa */}
-        <div className='grid gap-6 bg-card p-6 sm:p-8 rounded-xl border shadow-sm'>
+        <div className='mx-auto flex w-full max-w-sm flex-col justify-center space-y-2'>
           <div className='flex flex-col space-y-2 text-start'>
-            <h2 className='text-xl font-semibold tracking-tight'>Sign in</h2>
+            <h2 className='text-lg font-semibold tracking-tight'>Sign in</h2>
             <p className='text-sm text-muted-foreground'>
-              Enter your email and password below to log into your account.{' '}
-              Don't have an account?{' '}
+              Enter your email and password below to log into{' '}
+              <br className='max-sm:hidden' /> your account. Don't have an
+              account?{' '}
               <Link
                 to='/sign-up'
                 className='text-nowrap underline underline-offset-4 hover:text-primary'
@@ -37,10 +37,8 @@ export function SignIn2() {
               </Link>
             </p>
           </div>
-
           <UserAuthForm />
-
-          <p className='px-2 text-center text-xs text-muted-foreground'>
+          <p className='px-8 text-center text-sm text-muted-foreground'>
             By clicking sign in, you agree to our{' '}
             <a
               href='/terms'
@@ -58,7 +56,28 @@ export function SignIn2() {
             .
           </p>
         </div>
+      </div>
 
+      <div
+        className={cn(
+          'relative h-full overflow-hidden bg-muted max-lg:hidden',
+          '[&>img]:absolute [&>img]:top-[15%] [&>img]:left-20 [&>img]:h-full [&>img]:w-full [&>img]:object-cover [&>img]:object-top-left [&>img]:select-none'
+        )}
+      >
+        <img
+          src={dashboardLight}
+          className='dark:hidden'
+          width={1024}
+          height={1151}
+          alt='sinhHAI-Dashboard'
+        />
+        <img
+          src={dashboardDark}
+          className='hidden dark:block'
+          width={1024}
+          height={1138}
+          alt='sinhHAI-Dashboard'
+        />
       </div>
     </div>
   )
