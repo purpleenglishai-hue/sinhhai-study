@@ -27,7 +27,13 @@ export function Search({
       />
       <span className='ms-4'>{placeholder}</span>
       <kbd className='pointer-events-none absolute inset-e-[0.3rem] top-[0.3rem] hidden h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 select-none group-hover:bg-accent sm:flex'>
-        <span className='text-xs'>⌘</span>K
+        {/* Thay thế ký hiệu ⌘ bằng logo cá nhân */}
+        <img 
+          src='/images/logo.png' 
+          alt='Logo' 
+          className='w-3.5 h-3.5 object-contain rounded-full bg-white p-0.5' 
+        />
+        <span>K</span>
       </kbd>
     </Button>
   )
