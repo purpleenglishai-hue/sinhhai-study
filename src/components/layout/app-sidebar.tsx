@@ -18,7 +18,7 @@ export function AppSidebar() {
         {/* Phần Logo và Tên thương hiệu tùy chỉnh */}
         <div className='flex items-center gap-3 px-3 py-2'>
           <img 
-            src='/logo.png' 
+            src='/images/logo.png' 
             alt='SinhHAI Logo' 
             className='w-8 h-8 rounded-lg object-contain bg-primary/10 p-1' 
           />
