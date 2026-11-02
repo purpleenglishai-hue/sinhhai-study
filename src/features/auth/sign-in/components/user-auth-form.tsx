@@ -80,7 +80,7 @@ export function UserAuthForm({
     }
   }
 
-  // Đăng nhập bằng Google (Thay thế GitHub)
+  // Đăng nhập bằng Google (Đã sửa lỗi treo khi bấm Cancel)
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     try {
@@ -101,13 +101,17 @@ export function UserAuthForm({
       const targetPath = redirectTo || '/'
       navigate({ to: targetPath, replace: true })
     } catch (error: any) {
-      toast.error(error.message || 'Google sign-in failed')
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast.info('Bạn đã hủy thao tác đăng nhập.')
+      } else {
+        toast.error(error.message || 'Google sign-in failed')
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Đăng nhập bằng Facebook
+  // Đăng nhập bằng Facebook (Đã sửa lỗi treo khi bấm Cancel)
   const handleFacebookSignIn = async () => {
     setIsLoading(true)
     try {
@@ -128,7 +132,11 @@ export function UserAuthForm({
       const targetPath = redirectTo || '/'
       navigate({ to: targetPath, replace: true })
     } catch (error: any) {
-      toast.error(error.message || 'Facebook sign-in failed')
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast.info('Bạn đã hủy thao tác đăng nhập.')
+      } else {
+        toast.error(error.message || 'Facebook sign-in failed')
+      }
     } finally {
       setIsLoading(false)
     }
