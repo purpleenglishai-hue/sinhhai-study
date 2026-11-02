@@ -23,8 +23,7 @@ export function AppSidebar() {
             className='w-8 h-8 rounded-lg object-contain bg-primary/10 p-1' 
           />
           <div className='flex flex-col'>
-            <span className='font-bold text-sm tracking-tight'>SinhHAI StudyPlace</span>
-            <span className='text-xs text-muted-foreground'>Subscription Plan</span>
+            <span className='font-bold text-sm tracking-tight'>SinhHAI</span>
           </div>
         </div>
       </SidebarHeader>
