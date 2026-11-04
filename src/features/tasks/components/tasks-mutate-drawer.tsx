@@ -44,7 +44,7 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
     },
   })
 
-  // Hàm đẩy dữ liệu THẬT lên Cloud Firestore
+  // Hàm xử lý submit trực tiếp gọi qua form.handleSubmit
   const onSubmit = async (data: Task) => {
     const user = auth.currentUser
     if (!user) {
@@ -88,7 +88,6 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
         form.reset()
       }}
     >
-      {/* Thêm h-screen và flex để quản lý khung nhìn chuẩn */}
       <SheetContent className='flex flex-col h-screen overflow-hidden opacity-100 backdrop-blur-none bg-background border-l sm:max-w-md'>
         <SheetHeader className='text-start shrink-0'>
           <SheetTitle>{isUpdate ? 'Cập nhật nhiệm vụ' : 'Tạo nhiệm vụ mới'}</SheetTitle>
@@ -99,14 +98,13 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
           </SheetDescription>
         </SheetHeader>
 
-        {/* Thêm overflow-y-auto để tạo thanh cuộn mượt mà ở phần thân form */}
-        <div className='flex-1 overflow-y-auto py-4 px-1'>
-          <Form {...form}>
-            <form
-              id='tasks-mutate-form'
-              onSubmit={form.handleSubmit(onSubmit)}
-              className='space-y-5'
-            >
+        {/* Bọc toàn bộ form và gắn trực tiếp onSubmit vào đây để nút bấm kích hoạt chính xác */}
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className='flex flex-col flex-1 overflow-hidden'
+          >
+            <div className='flex-1 overflow-y-auto py-4 px-1 space-y-5'>
               <FormField
                 control={form.control}
                 name='title'
@@ -151,7 +149,7 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         className='flex flex-col space-y-1'
                       >
                         <FormItem className='flex items-center space-x-3 space-y-0'>
@@ -187,7 +185,7 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         className='flex flex-col space-y-1'
                       >
                         <FormItem className='flex items-center space-x-3 space-y-0'>
@@ -204,7 +202,7 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                         </FormItem>
                         <FormItem className='flex items-center space-x-3 space-y-0'>
                           <FormControl>
-                            <RadioGroupItem value='high' />
+                            <RadioGroupItem value='low' />
                           </FormControl>
                           <FormLabel className='font-normal'>Cao</FormLabel>
                         </FormItem>
@@ -214,21 +212,21 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                   </FormItem>
                 )}
               />
-            </form>
-          </Form>
-        </div>
+            </div>
 
-        {/* SheetFooter được giữ cố định ở đáy drawer luôn hiển thị rõ ràng */}
-        <SheetFooter className='gap-2 sm:space-x-0 pt-4 border-t shrink-0'>
-          <SheetClose asChild>
-            <Button type='button' variant='outline'>
-              Đóng
-            </Button>
-          </SheetClose>
-          <Button type='submit' form='tasks-mutate-form'>
-            Lưu thay đổi
-          </Button>
-        </SheetFooter>
+            {/* Đặt nút submit type='submit' nằm gọn trực tiếp trong form để gọi hàm khi click */}
+            <SheetFooter className='gap-2 sm:space-x-0 pt-4 border-t shrink-0'>
+              <SheetClose asChild>
+                <Button type='button' variant='outline'>
+                  Đóng
+                </Button>
+              </SheetClose>
+              <Button type='submit'>
+                Lưu thay đổi
+              </Button>
+            </SheetFooter>
+          </form>
+        </Form>
       </SheetContent>
     </Sheet>
   )
