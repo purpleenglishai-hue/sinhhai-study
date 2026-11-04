@@ -6,7 +6,6 @@ import { AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { auth, db } from '@/firebase'
 import { doc, deleteDoc } from 'firebase/firestore'
-import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
 type TaskMultiDeleteDialogProps<TData> = {
@@ -33,6 +32,7 @@ export function TasksMultiDeleteDialog<TData>({
 
     setIsDeleting(true)
     try {
+      // Xóa thật từng task được chọn trên Firestore
       const deletePromises = selectedRows.map((row: any) => {
         const taskId = row.original.id
         const taskRef = doc(db, `users/${user.uid}/tasks`, taskId)
@@ -56,23 +56,30 @@ export function TasksMultiDeleteDialog<TData>({
     <ConfirmDialog
       open={open}
       onOpenChange={onOpenChange}
+      form='tasks-multi-delete-form'
       disabled={isDeleting}
       title={
         <span className='text-destructive flex items-center'>
           <AlertTriangle className='me-1 inline-block stroke-destructive' size={18} />
-          Xác nhận xóa {selectedRows.length} {selectedRows.length > 1 ? 'nhiệm vụ' : 'nhiệm vụ'}
+          Xóa {selectedRows.length} {selectedRows.length > 1 ? 'nhiệm vụ đã chọn' : 'nhiệm vụ'}
         </span>
       }
       desc={
-        <div className='py-3'>
+        <form
+          id='tasks-multi-delete-form'
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleDelete()
+          }}
+          className='space-y-3'
+        >
           <p className='text-sm text-muted-foreground'>
-            Bạn có chắc chắn muốn xóa các nhiệm vụ đã chọn khỏi danh sách học tập không?
+            Bạn có chắc chắn muốn xóa nhiệm vụ này không? Thao tác này sẽ gỡ bỏ dữ liệu khỏi danh sách học tập của bạn.
           </p>
-        </div>
+        </form>
       }
       confirmText={isDeleting ? 'Đang xóa...' : 'Xóa ngay'}
       destructive
-      handleConfirm={handleDelete}
     />
   )
 }
