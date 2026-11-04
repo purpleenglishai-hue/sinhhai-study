@@ -113,16 +113,16 @@ export function TasksTable({ data }: DataTableProps) {
     >
       <DataTableToolbar
         table={table}
-        searchPlaceholder='Filter by title or ID...'
+        searchPlaceholder='Tìm kiếm theo tiêu đề...'
         filters={[
           {
             columnId: 'status',
-            title: 'Status',
+            title: 'Trạng thái',
             options: statuses,
           },
           {
             columnId: 'priority',
-            title: 'Priority',
+            title: 'Độ ưu tiên',
             options: priorities,
           },
         ]}
