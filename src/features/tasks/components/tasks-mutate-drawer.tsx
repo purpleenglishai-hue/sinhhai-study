@@ -44,7 +44,7 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
     },
   })
 
-  // Hàm xử lý submit trực tiếp gọi qua form.handleSubmit
+  // Hàm đẩy dữ liệu THẬT lên Cloud Firestore
   const onSubmit = async (data: Task) => {
     const user = auth.currentUser
     if (!user) {
@@ -88,8 +88,8 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
         form.reset()
       }}
     >
-      <SheetContent className='flex flex-col h-screen overflow-hidden opacity-100 backdrop-blur-none bg-background border-l sm:max-w-md'>
-        <SheetHeader className='text-start shrink-0'>
+      <SheetContent className='flex flex-col h-full sm:max-w-md p-6 overflow-hidden'>
+        <SheetHeader className='text-start pb-2'>
           <SheetTitle>{isUpdate ? 'Cập nhật nhiệm vụ' : 'Tạo nhiệm vụ mới'}</SheetTitle>
           <SheetDescription>
             {isUpdate
@@ -98,13 +98,14 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
           </SheetDescription>
         </SheetHeader>
 
-        {/* Bọc toàn bộ form và gắn trực tiếp onSubmit vào đây để nút bấm kích hoạt chính xác */}
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-col flex-1 overflow-hidden'
-          >
-            <div className='flex-1 overflow-y-auto py-4 px-1 space-y-5'>
+        {/* Khu vực chứa form có thanh cuộn dọc (overflow-y-auto) giúp hiện đầy đủ nội dung */}
+        <div className='flex-1 overflow-y-auto pr-1 py-2'>
+          <Form {...form}>
+            <form
+              id='tasks-mutate-form'
+              onSubmit={form.handleSubmit(onSubmit)}
+              className='space-y-4'
+            >
               <FormField
                 control={form.control}
                 name='title'
@@ -144,12 +145,12 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                 control={form.control}
                 name='label'
                 render={({ field }) => (
-                  <FormItem className='space-y-3'>
+                  <FormItem className='space-y-2'>
                     <FormLabel>Nhãn dán</FormLabel>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        value={field.value}
+                        defaultValue={field.value}
                         className='flex flex-col space-y-1'
                       >
                         <FormItem className='flex items-center space-x-3 space-y-0'>
@@ -180,12 +181,12 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                 control={form.control}
                 name='priority'
                 render={({ field }) => (
-                  <FormItem className='space-y-3'>
+                  <FormItem className='space-y-2'>
                     <FormLabel>Mức độ ưu tiên</FormLabel>
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        value={field.value}
+                        defaultValue={field.value}
                         className='flex flex-col space-y-1'
                       >
                         <FormItem className='flex items-center space-x-3 space-y-0'>
@@ -202,7 +203,7 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                         </FormItem>
                         <FormItem className='flex items-center space-x-3 space-y-0'>
                           <FormControl>
-                            <RadioGroupItem value='low' />
+                            <RadioGroupItem value='high' />
                           </FormControl>
                           <FormLabel className='font-normal'>Cao</FormLabel>
                         </FormItem>
@@ -212,21 +213,21 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                   </FormItem>
                 )}
               />
-            </div>
+            </form>
+          </Form>
+        </div>
 
-            {/* Đặt nút submit type='submit' nằm gọn trực tiếp trong form để gọi hàm khi click */}
-            <SheetFooter className='gap-2 sm:space-x-0 pt-4 border-t shrink-0'>
-              <SheetClose asChild>
-                <Button type='button' variant='outline'>
-                  Đóng
-                </Button>
-              </SheetClose>
-              <Button type='submit'>
-                Lưu thay đổi
-              </Button>
-            </SheetFooter>
-          </form>
-        </Form>
+        <SheetFooter className='pt-2 border-t flex flex-row justify-end gap-2'>
+          <SheetClose asChild>
+            <Button type='button' variant='outline'>
+              Đóng
+            </Button>
+          </SheetClose>
+          {/* Nút submit liên kết chính xác với id của form bên trên */}
+          <Button type='submit' form='tasks-mutate-form'>
+            Lưu thay đổi
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )
