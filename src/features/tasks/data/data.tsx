@@ -2,9 +2,9 @@ import {
   ArrowDownIcon,
   ArrowRightIcon,
   ArrowUpIcon,
-  CheckCircle2Icon,
+  CheckCircledIcon,
   CircleIcon,
-  HelpCircleIcon,
+  QuestionMarkCircledIcon,
   StopwatchIcon,
 } from '@radix-ui/react-icons'
 
@@ -27,7 +27,7 @@ export const statuses = [
   {
     value: 'backlog',
     label: 'Đang chờ',
-    icon: HelpCircleIcon,
+    icon: QuestionMarkCircledIcon,
   },
   {
     value: 'todo',
@@ -42,7 +42,7 @@ export const statuses = [
   {
     value: 'done',
     label: 'Đã hoàn thành',
-    icon: CheckCircle2Icon,
+    icon: CheckCircledIcon,
   },
   {
     value: 'canceled',
