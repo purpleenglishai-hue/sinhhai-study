@@ -15,7 +15,6 @@ import { onAuthStateChanged } from 'firebase/auth'
 
 export function Tasks() {
   const [tasksData, setTasksData] = useState<any[]>(staticTasks)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let unsubscribeSnapshot: (() => void) | undefined
@@ -34,18 +33,15 @@ export function Tasks() {
             }))
             setTasksData(fetchedTasks)
           } else {
-            // Nếu chưa có task nào trên Firestore, hiển thị mảng mẫu hoặc mảng trống
+            // Nếu chưa có task nào trên Firestore, hiển thị mảng mẫu
             setTasksData(staticTasks)
           }
-          setLoading(false)
         }, (error) => {
           console.error("Lỗi đồng bộ tasks real-time:", error)
-          setLoading(false)
         })
       } else {
         // Nếu chưa đăng nhập, dùng dữ liệu tĩnh mẫu
         setTasksData(staticTasks)
-        setLoading(false)
       }
     })
 
