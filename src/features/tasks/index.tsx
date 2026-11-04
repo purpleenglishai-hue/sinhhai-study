@@ -8,21 +8,18 @@ import { TasksDialogs } from './components/tasks-dialogs'
 import { TasksPrimaryButtons } from './components/tasks-primary-buttons'
 import { TasksProvider } from './components/tasks-provider'
 import { TasksTable } from './components/tasks-table'
-import { tasks as staticTasks } from './data/tasks'
 import { auth, db } from '@/firebase'
 import { collection, onSnapshot, query } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 
 export function Tasks() {
-  const [tasksData, setTasksData] = useState<any[]>(staticTasks)
+  const [tasksData, setTasksData] = useState<any[]>([])
 
   useEffect(() => {
     let unsubscribeSnapshot: (() => void) | undefined
 
-    // Lắng nghe trạng thái đăng nhập để lấy đúng tasks theo UID của user thực tế
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
-        // Truy vấn collection riêng của user: users/{uid}/tasks
         const tasksQuery = query(collection(db, `users/${user.uid}/tasks`))
         
         unsubscribeSnapshot = onSnapshot(tasksQuery, (snapshot) => {
@@ -33,15 +30,14 @@ export function Tasks() {
             }))
             setTasksData(fetchedTasks)
           } else {
-            // Nếu chưa có task nào trên Firestore, hiển thị mảng mẫu
-            setTasksData(staticTasks)
+            // Đã xóa sạch task mẫu, trả về mảng rỗng cho user tự tạo mới
+            setTasksData([])
           }
         }, (error) => {
-          console.error("Lỗi đồng bộ tasks real-time:", error)
+          console.error("Lỗi đồng bộ tasks:", error)
         })
       } else {
-        // Nếu chưa đăng nhập, dùng dữ liệu tĩnh mẫu
-        setTasksData(staticTasks)
+        setTasksData([])
       }
     })
 
@@ -62,9 +58,9 @@ export function Tasks() {
       <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
         <div className='flex flex-wrap items-end justify-between gap-2'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>Tasks</h2>
+            <h2 className='text-2xl font-bold tracking-tight'>Nhiệm vụ & Deadline</h2>
             <p className='text-muted-foreground'>
-              Here&apos;s a list of your tasks for this month!
+              Quản lý danh sách nhiệm vụ và tiến độ học tập của bạn!
             </p>
           </div>
           <TasksPrimaryButtons />
