@@ -5,7 +5,7 @@ import { labels, priorities, statuses } from '../data/data'
 import { type Task } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export const columns: ColumnDef<Task>[] = [
+export const tasksColumns: ColumnDef<Task>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -15,7 +15,7 @@ export const columns: ColumnDef<Task>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label='Chọn tất cả'
+        aria-label='Select all'
         className='translate-y-[2px]'
       />
     ),
@@ -23,7 +23,7 @@ export const columns: ColumnDef<Task>[] = [
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label='Chọn hàng'
+        aria-label='Select row'
         className='translate-y-[2px]'
       />
     ),
@@ -32,25 +32,21 @@ export const columns: ColumnDef<Task>[] = [
   },
   {
     accessorKey: 'id',
-    header: 'Mã NV',
-    cell: ({ row }) => {
-      const id = row.getValue('id') as string
-      const shortId = id && id.length > 8 ? `#${id.substring(0, 6)}` : id
-      return <div className='w-[70px] font-mono text-xs text-muted-foreground'>{shortId}</div>
-    },
+    header: 'Task',
+    cell: ({ row }) => <div className='w-[80px]'>{row.getValue('id')}</div>,
     enableSorting: false,
     enableHiding: false,
   },
   {
     accessorKey: 'title',
-    header: 'Tiêu đề nhiệm vụ',
+    header: 'Title',
     cell: ({ row }) => {
       const label = labels.find((l) => l.value === row.original.label)
 
       return (
-        <div className='flex items-center space-x-2'>
+        <div className='flex space-x-2'>
           {label && <Badge variant='outline'>{label.label}</Badge>}
-          <span className='max-w-[200px] truncate font-medium sm:max-w-[280px]'>
+          <span className='max-w-36 truncate font-medium sm:max-w-md md:max-w-lg'>
             {row.getValue('title')}
           </span>
         </div>
@@ -59,7 +55,7 @@ export const columns: ColumnDef<Task>[] = [
   },
   {
     accessorKey: 'status',
-    header: 'Trạng thái',
+    header: 'Status',
     cell: ({ row }) => {
       const status = statuses.find(
         (s) => s.value === row.getValue('status')
@@ -70,7 +66,7 @@ export const columns: ColumnDef<Task>[] = [
       }
 
       return (
-        <div className='flex w-[130px] items-center'>
+        <div className='flex w-[100px] items-center'>
           {status.icon && (
             <status.icon className='mr-2 h-4 w-4 text-muted-foreground' />
           )}
@@ -84,7 +80,7 @@ export const columns: ColumnDef<Task>[] = [
   },
   {
     accessorKey: 'priority',
-    header: 'Độ ưu tiên',
+    header: 'Priority',
     cell: ({ row }) => {
       const priority = priorities.find(
         (p) => p.value === row.getValue('priority')
