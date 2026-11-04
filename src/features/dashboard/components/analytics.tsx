@@ -5,24 +5,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { AnalyticsChart } from './analytics-chart'
 
 export function Analytics() {
   return (
     <div className='space-y-4'>
-      <Card>
-        <CardHeader>
-          <CardTitle>Traffic Overview</CardTitle>
-          <CardDescription>Weekly clicks and unique visitors</CardDescription>
-        </CardHeader>
-        <CardContent className='px-6'>
-          <AnalyticsChart />
-        </CardContent>
-      </Card>
       <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
         <Card>
           <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Total Clicks</CardTitle>
+            <CardTitle className='text-sm font-medium'>Hiệu suất hoàn thành</CardTitle>
             <svg
               xmlns='http://www.w3.org/2000/svg'
               viewBox='0 0 24 24'
@@ -31,65 +21,64 @@ export function Analytics() {
               strokeLinecap='round'
               strokeLinejoin='round'
               strokeWidth='2'
-              className='h-4 w-4 text-muted-foreground'
+              className='h-4 w-4 text-green-600'
+            >
+              <path d='M22 11.08V12a10 10 0 1 1-5.93-9.14' />
+              polyline points='22 4 12 14.01 9 11.01'
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className='text-2xl font-bold text-green-600'>Tốt</div>
+            <p className='text-xs text-muted-foreground'>Duy trì tiến độ học tập đều đặn</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+            <CardTitle className='text-sm font-medium'>Mức độ tập trung</CardTitle>
+            <svg
+              xmlns='http://www.w3.org/2000/svg'
+              viewBox='0 0 24 24'
+              fill='none'
+              stroke='currentColor'
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              strokeWidth='2'
+              className='h-4 w-4 text-blue-600'
+            >
+              <circle cx='12' cy='12' r='10' />
+              <polyline points='12 6 12 12 16 14' />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className='text-2xl font-bold text-blue-600'>Ổn định</div>
+            <p className='text-xs text-muted-foreground'>Quản lý thời gian hiệu quả</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+            <CardTitle className='text-sm font-medium'>Mục tiêu tuần</CardTitle>
+            <svg
+              xmlns='http://www.w3.org/2000/svg'
+              viewBox='0 0 24 24'
+              fill='none'
+              stroke='currentColor'
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              strokeWidth='2'
+              className='h-4 w-4 text-purple-600'
             >
               <path d='M3 3v18h18' />
               <path d='M7 15l4-4 4 4 4-6' />
             </svg>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>1,248</div>
-            <p className='text-xs text-muted-foreground'>+12.4% vs last week</p>
+            <div className='text-2xl font-bold'>Đang đạt</div>
+            <p className='text-xs text-muted-foreground'>Bám sát kế hoạch đề ra</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>
-              Unique Visitors
-            </CardTitle>
-            <svg
-              xmlns='http://www.w3.org/2000/svg'
-              viewBox='0 0 24 24'
-              fill='none'
-              stroke='currentColor'
-              strokeLinecap='round'
-              strokeLinejoin='round'
-              strokeWidth='2'
-              className='h-4 w-4 text-muted-foreground'
-            >
-              <circle cx='12' cy='7' r='4' />
-              <path d='M6 21v-2a6 6 0 0 1 12 0v2' />
-            </svg>
-          </CardHeader>
-          <CardContent>
-            <div className='text-2xl font-bold'>832</div>
-            <p className='text-xs text-muted-foreground'>+5.8% vs last week</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Bounce Rate</CardTitle>
-            <svg
-              xmlns='http://www.w3.org/2000/svg'
-              viewBox='0 0 24 24'
-              fill='none'
-              stroke='currentColor'
-              strokeLinecap='round'
-              strokeLinejoin='round'
-              strokeWidth='2'
-              className='h-4 w-4 text-muted-foreground'
-            >
-              <path d='M3 12h6l3 6 3-6h6' />
-            </svg>
-          </CardHeader>
-          <CardContent>
-            <div className='text-2xl font-bold'>42%</div>
-            <p className='text-xs text-muted-foreground'>-3.2% vs last week</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Avg. Session</CardTitle>
+            <CardTitle className='text-sm font-medium'>Nền tảng vận hành</CardTitle>
             <svg
               xmlns='http://www.w3.org/2000/svg'
               viewBox='0 0 24 24'
@@ -101,45 +90,48 @@ export function Analytics() {
               className='h-4 w-4 text-muted-foreground'
             >
               <circle cx='12' cy='12' r='10' />
-              <path d='M12 6v6l4 2' />
+              <path d='M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z' />
+              <path d='M2 12h20' />
             </svg>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>3m 24s</div>
-            <p className='text-xs text-muted-foreground'>+18s vs last week</p>
+            <div className='text-2xl font-bold'>Firebase</div>
+            <p className='text-xs text-muted-foreground'>Đồng bộ thời gian thực</p>
           </CardContent>
         </Card>
       </div>
+
       <div className='grid grid-cols-1 gap-4 lg:grid-cols-7'>
         <Card className='col-span-1 lg:col-span-4'>
           <CardHeader>
-            <CardTitle>Referrers</CardTitle>
-            <CardDescription>Top sources driving traffic</CardDescription>
+            <CardTitle>Trạng thái phân bổ nhiệm vụ</CardTitle>
+            <CardDescription>Tỷ lệ hoàn thành công việc và học tập</CardDescription>
           </CardHeader>
           <CardContent>
             <SimpleBarList
               items={[
-                { name: 'Direct', value: 512 },
-                { name: 'Product Hunt', value: 238 },
-                { name: 'Twitter', value: 174 },
-                { name: 'Blog', value: 104 },
+                { name: 'Đã hoàn thành', value: 85 },
+                { name: 'Đang thực hiện', value: 60 },
+                { name: 'Chưa bắt đầu', value: 25 },
+                { name: 'Cần lưu ý / Quá hạn', value: 10 },
               ]}
               barClass='bg-primary'
-              valueFormatter={(n) => `${n}`}
+              valueFormatter={(n) => `${n}%`}
             />
           </CardContent>
         </Card>
         <Card className='col-span-1 lg:col-span-3'>
           <CardHeader>
-            <CardTitle>Devices</CardTitle>
-            <CardDescription>How users access your app</CardDescription>
+            <CardTitle>Không gian sử dụng</CardTitle>
+            <CardDescription>Các khu vực truy cập chính</CardDescription>
           </CardHeader>
           <CardContent>
             <SimpleBarList
               items={[
-                { name: 'Desktop', value: 74 },
-                { name: 'Mobile', value: 22 },
-                { name: 'Tablet', value: 4 },
+                { name: 'Nhiệm vụ & Deadline', value: 90 },
+                { name: 'Tổng quan học tập', value: 75 },
+                { name: 'Trợ lý AI SinhHAI', value: 50 },
+                { name: 'Kho tài liệu (Storage)', value: 30 },
               ]}
               barClass='bg-muted-foreground'
               valueFormatter={(n) => `${n}%`}
