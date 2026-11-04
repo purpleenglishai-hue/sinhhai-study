@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { labels, priorities, statuses } from '../data/data'
 import { type Task } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
+import { CalendarIcon } from '@radix-ui/react-icons'
 
 export const tasksColumns: ColumnDef<Task>[] = [
   {
@@ -43,9 +44,35 @@ export const tasksColumns: ColumnDef<Task>[] = [
               {label.label}
             </Badge>
           )}
-          <span className='max-w-[300px] truncate font-medium text-foreground sm:max-w-[400px]'>
+          <span className='max-w-[260px] truncate font-medium text-foreground sm:max-w-[320px]'>
             {row.getValue('title')}
           </span>
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: 'startDate',
+    header: 'Ngày bắt đầu',
+    cell: ({ row }) => {
+      const date = row.getValue('startDate') as string
+      return (
+        <div className='flex items-center text-xs font-medium text-green-600 dark:text-green-400'>
+          <CalendarIcon className='mr-1.5 h-3.5 w-3.5 text-green-600 dark:text-green-400' />
+          {date ? date : 'Chưa đặt'}
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: 'dueDate',
+    header: 'Hạn chót (Deadline)',
+    cell: ({ row }) => {
+      const date = row.getValue('dueDate') as string
+      return (
+        <div className='flex items-center text-xs font-semibold text-red-600 dark:text-red-400'>
+          <CalendarIcon className='mr-1.5 h-3.5 w-3.5 text-red-600 dark:text-red-400' />
+          {date ? date : 'Không có'}
         </div>
       )
     },
