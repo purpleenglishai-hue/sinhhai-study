@@ -10,101 +10,101 @@ import {
   IconMedium,
   IconSkype,
   IconDocker,
-  IconGithub,
-  IconGitlab,
   IconDiscord,
   IconWhatsapp,
 } from '@/assets/brand-icons'
 
-export const apps = [
+export interface AppItem {
+  name: string
+  logo: React.ReactNode
+  connected: boolean
+  desc: string
+  url: string
+}
+
+export const apps: AppItem[] = [
   {
-    name: 'Telegram',
+    name: 'Zalo',
     logo: <IconTelegram />,
-    connected: false,
-    desc: 'Connect with Telegram for real-time communication.',
-  },
-  {
-    name: 'Notion',
-    logo: <IconNotion />,
     connected: true,
-    desc: 'Effortlessly sync Notion pages for seamless collaboration.',
+    desc: 'Ứng dụng nhắn tin, gọi điện và trao đổi nhóm học tập phổ biến.',
+    url: 'https://chat.zalo.me',
   },
   {
-    name: 'Figma',
-    logo: <IconFigma />,
-    connected: true,
-    desc: 'View and collaborate on Figma designs in one place.',
-  },
-  {
-    name: 'Trello',
-    logo: <IconTrello />,
-    connected: false,
-    desc: 'Sync Trello cards for streamlined project management.',
-  },
-  {
-    name: 'Slack',
-    logo: <IconSlack />,
-    connected: false,
-    desc: 'Integrate Slack for efficient team communication',
-  },
-  {
-    name: 'Zoom',
+    name: 'Zoom Meeting',
     logo: <IconZoom />,
     connected: true,
-    desc: 'Host Zoom meetings directly from the dashboard.',
+    desc: 'Tham gia và tổ chức các lớp học trực tuyến, phòng họp từ xa.',
+    url: 'https://zoom.us',
   },
   {
-    name: 'Stripe',
-    logo: <IconStripe />,
+    name: 'Google Drive',
+    logo: <IconNotion />,
+    connected: true,
+    desc: 'Kho lưu trữ tài liệu, giáo án và chia sẻ tệp học tập cá nhân.',
+    url: 'https://drive.google.com',
+  },
+  {
+    name: 'Canva',
+    logo: <IconFigma />,
+    connected: true,
+    desc: 'Thiết kế slide bài giảng, hình ảnh và banner học tập bắt mắt.',
+    url: 'https://www.canva.com',
+  },
+  {
+    name: 'Google Meet',
+    logo: <IconSlack />,
     connected: false,
-    desc: 'Easily manage Stripe transactions and payments.',
+    desc: 'Hội họp và giảng dạy trực tuyến nhanh chóng qua trình duyệt.',
+    url: 'https://meet.google.com',
+  },
+  {
+    name: 'YouTube',
+    logo: <IconMedium />,
+    connected: true,
+    desc: 'Nguồn video bài giảng, khóa học và tư liệu học tập phong phú.',
+    url: 'https://www.youtube.com',
+  },
+  {
+    name: 'TikTok',
+    logo: <IconDiscord />,
+    connected: false,
+    desc: 'Khám phá các video ngắn kiến thức, mẹo học tập và giải trí.',
+    url: 'https://www.tiktok.com',
   },
   {
     name: 'Gmail',
     logo: <IconGmail />,
     connected: true,
-    desc: 'Access and manage Gmail messages effortlessly.',
+    desc: 'Quản lý hộp thư điện tử, nhận thông báo và tài liệu quan trọng.',
+    url: 'https://mail.google.com',
   },
   {
-    name: 'Medium',
-    logo: <IconMedium />,
+    name: 'Notion',
+    logo: <IconNotion />,
     connected: false,
-    desc: 'Explore and share Medium stories on your dashboard.',
+    desc: 'Ghi chú thông minh, quản lý tri thức và kế hoạch cá nhân.',
+    url: 'https://www.notion.so',
+  },
+  {
+    name: 'Trello',
+    logo: <IconTrello />,
+    connected: false,
+    desc: 'Quản lý tiến độ công việc và nhiệm vụ theo dạng bảng trực quan.',
+    url: 'https://trello.com',
   },
   {
     name: 'Skype',
     logo: <IconSkype />,
     connected: false,
-    desc: 'Connect with Skype contacts seamlessly.',
-  },
-  {
-    name: 'Docker',
-    logo: <IconDocker />,
-    connected: false,
-    desc: 'Effortlessly manage Docker containers on your dashboard.',
-  },
-  {
-    name: 'GitHub',
-    logo: <IconGithub />,
-    connected: false,
-    desc: 'Streamline code management with GitHub integration.',
-  },
-  {
-    name: 'GitLab',
-    logo: <IconGitlab />,
-    connected: false,
-    desc: 'Efficiently manage code projects with GitLab integration.',
-  },
-  {
-    name: 'Discord',
-    logo: <IconDiscord />,
-    connected: false,
-    desc: 'Connect with Discord for seamless team communication.',
+    desc: 'Kết nối liên lạc và trò chuyện trực tuyến với bạn bè, học viên.',
+    url: 'https://www.skype.com',
   },
   {
     name: 'WhatsApp',
     logo: <IconWhatsapp />,
     connected: false,
-    desc: 'Easily integrate WhatsApp for direct messaging.',
+    desc: 'Nhắn tin trực tiếp nhanh chóng, bảo mật và ổn định.',
+    url: 'https://web.whatsapp.com',
   },
 ]
