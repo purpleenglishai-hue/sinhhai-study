@@ -1,6 +1,6 @@
 import { type ChangeEvent, useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
-import { SlidersHorizontal, ArrowUpAZ, ArrowDownAZ } from 'lucide-react'
+import { SlidersHorizontal, ArrowUpAZ, ArrowDownAZ, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -24,9 +24,9 @@ const route = getRouteApi('/_authenticated/apps/')
 type AppType = 'all' | 'connected' | 'notConnected'
 
 const appText = new Map<AppType, string>([
-  ['all', 'All Apps'],
-  ['connected', 'Connected'],
-  ['notConnected', 'Not Connected'],
+  ['all', 'Tất cả ứng dụng'],
+  ['connected', 'Đã liên kết'],
+  ['notConnected', 'Chưa liên kết'],
 ])
 
 export function Apps() {
@@ -85,7 +85,8 @@ export function Apps() {
     <>
       {/* ===== Top Heading ===== */}
       <Header>
-        <Search className='me-auto' />
+        <div className='me-auto font-semibold text-lg'>Công cụ & Office</div>
+        <Search />
         <ThemeSwitch />
         <ConfigDrawer />
         <ProfileDropdown />
@@ -93,30 +94,30 @@ export function Apps() {
 
       {/* ===== Content ===== */}
       <Main fixed>
-        <div>
+        <div className='mb-4'>
           <h1 className='text-2xl font-bold tracking-tight'>
-            App Integrations
+            Công cụ & Tiện ích học tập
           </h1>
-          <p className='text-muted-foreground'>
-            Here&apos;s a list of your apps for the integration!
+          <p className='text-muted-foreground text-sm'>
+            Danh sách các ứng dụng, liên lạc và tiện ích hỗ trợ học tập, giảng dạy thực tế của bạn.
           </p>
         </div>
         <div className='my-4 flex items-end justify-between sm:my-0 sm:items-center'>
           <div className='flex flex-col gap-4 sm:my-4 sm:flex-row'>
             <Input
-              placeholder='Filter apps...'
+              placeholder='Tìm kiếm công cụ...'
               className='h-9 w-40 lg:w-62.5'
               value={searchTerm}
               onChange={handleSearch}
             />
             <Select value={appType} onValueChange={handleTypeChange}>
-              <SelectTrigger className='w-36'>
+              <SelectTrigger className='w-40'>
                 <SelectValue>{appText.get(appType)}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='all'>All Apps</SelectItem>
-                <SelectItem value='connected'>Connected</SelectItem>
-                <SelectItem value='notConnected'>Not Connected</SelectItem>
+                <SelectItem value='all'>Tất cả ứng dụng</SelectItem>
+                <SelectItem value='connected'>Đã liên kết</SelectItem>
+                <SelectItem value='notConnected'>Chưa liên kết</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -131,13 +132,13 @@ export function Apps() {
               <SelectItem value='asc'>
                 <div className='flex items-center gap-4'>
                   <ArrowUpAZ size={16} />
-                  <span>Ascending</span>
+                  <span>Tăng dần (A-Z)</span>
                 </div>
               </SelectItem>
               <SelectItem value='desc'>
                 <div className='flex items-center gap-4'>
                   <ArrowDownAZ size={16} />
-                  <span>Descending</span>
+                  <span>Giảm dần (Z-A)</span>
                 </div>
               </SelectItem>
             </SelectContent>
@@ -148,25 +149,29 @@ export function Apps() {
           {filteredApps.map((app) => (
             <li
               key={app.name}
-              className='rounded-lg border p-4 hover:shadow-md'
+              className='rounded-lg border p-4 hover:shadow-md transition-all flex flex-col justify-between'
             >
-              <div className='mb-8 flex items-center justify-between'>
-                <div
-                  className={`flex size-10 items-center justify-center rounded-lg bg-muted p-2`}
-                >
-                  {app.logo}
-                </div>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className={`${app.connected ? 'border border-blue-300 bg-blue-50 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-950 dark:hover:bg-blue-900' : ''}`}
-                >
-                  {app.connected ? 'Connected' : 'Connect'}
-                </Button>
-              </div>
               <div>
-                <h2 className='mb-1 font-semibold'>{app.name}</h2>
-                <p className='line-clamp-2 text-gray-500'>{app.desc}</p>
+                <div className='mb-4 flex items-center justify-between'>
+                  <div className='flex size-10 items-center justify-center rounded-lg bg-muted p-2'>
+                    {app.logo}
+                  </div>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    asChild
+                    className={`${app.connected ? 'border border-blue-300 bg-blue-50 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-950 dark:hover:bg-blue-900' : ''}`}
+                  >
+                    <a href={app.url || 'https://google.com'} target='_blank' rel='noopener noreferrer' className='flex items-center gap-1.5'>
+                      <span>{app.connected ? 'Truy cập' : 'Mở liên kết'}</span>
+                      <ExternalLink size={14} />
+                    </a>
+                  </Button>
+                </div>
+                <div>
+                  <h2 className='mb-1 font-semibold text-base'>{app.name}</h2>
+                  <p className='line-clamp-2 text-sm text-muted-foreground'>{app.desc}</p>
+                </div>
               </div>
             </li>
           ))}
