@@ -54,7 +54,6 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
 
     try {
       if (isUpdate && currentRow?.id) {
-        // Cập nhật task trên Firestore
         const taskRef = doc(db, `users/${user.uid}/tasks`, currentRow.id)
         await updateDoc(taskRef, {
           title: data.title,
@@ -64,7 +63,6 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
           updatedAt: new Date().toISOString(),
         })
       } else {
-        // Tạo task mới lưu vào users/{uid}/tasks
         await addDoc(collection(db, `users/${user.uid}/tasks`), {
           title: data.title,
           status: data.status,
@@ -90,8 +88,9 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
         form.reset()
       }}
     >
-      <SheetContent className='flex flex-col opacity-100 backdrop-blur-none bg-background border-l sm:max-w-md'>
-        <SheetHeader className='text-start'>
+      {/* Thêm h-screen và flex để quản lý khung nhìn chuẩn */}
+      <SheetContent className='flex flex-col h-screen overflow-hidden opacity-100 backdrop-blur-none bg-background border-l sm:max-w-md'>
+        <SheetHeader className='text-start shrink-0'>
           <SheetTitle>{isUpdate ? 'Cập nhật nhiệm vụ' : 'Tạo nhiệm vụ mới'}</SheetTitle>
           <SheetDescription>
             {isUpdate
@@ -99,122 +98,128 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
               : 'Thêm nhiệm vụ mới vào danh sách học tập của bạn.'}
           </SheetDescription>
         </SheetHeader>
-        <Form {...form}>
-          <form
-            id='tasks-mutate-form'
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='space-y-5 flex-1'
-          >
-            <FormField
-              control={form.control}
-              name='title'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tiêu đề</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder='Nhập tiêu đề nhiệm vụ...' />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='status'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Trạng thái</FormLabel>
-                  <SelectDropdown
-                    defaultValue={field.value}
-                    onValueChange={field.onChange}
-                    placeholder='Chọn trạng thái'
-                    items={[
-                      { label: 'Cần làm (Todo)', value: 'todo' },
-                      { label: 'Đang thực hiện (In Progress)', value: 'in progress' },
-                      { label: 'Đang chờ (Backlog)', value: 'backlog' },
-                      { label: 'Đã hoàn thành (Done)', value: 'done' },
-                      { label: 'Đã hủy (Canceled)', value: 'canceled' },
-                    ]}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='label'
-              render={({ field }) => (
-                <FormItem className='space-y-3'>
-                  <FormLabel>Nhãn dán</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
+
+        {/* Thêm overflow-y-auto để tạo thanh cuộn mượt mà ở phần thân form */}
+        <div className='flex-1 overflow-y-auto py-4 px-1'>
+          <Form {...form}>
+            <form
+              id='tasks-mutate-form'
+              onSubmit={form.handleSubmit(onSubmit)}
+              className='space-y-5'
+            >
+              <FormField
+                control={form.control}
+                name='title'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tiêu đề</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder='Nhập tiêu đề nhiệm vụ...' />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='status'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trạng thái</FormLabel>
+                    <SelectDropdown
                       defaultValue={field.value}
-                      className='flex flex-col space-y-1'
-                    >
-                      <FormItem className='flex items-center space-x-3 space-y-0'>
-                        <FormControl>
-                          <RadioGroupItem value='documentation' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>Tài liệu</FormLabel>
-                      </FormItem>
-                      <FormItem className='flex items-center space-x-3 space-y-0'>
-                        <FormControl>
-                          <RadioGroupItem value='feature' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>Tính năng</FormLabel>
-                      </FormItem>
-                      <FormItem className='flex items-center space-x-3 space-y-0'>
-                        <FormControl>
-                          <RadioGroupItem value='bug' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>Lỗi / Vấn đề</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='priority'
-              render={({ field }) => (
-                <FormItem className='space-y-3'>
-                  <FormLabel>Mức độ ưu tiên</FormLabel>
-                  <FormControl>
-                    <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className='flex flex-col space-y-1'
-                    >
-                      <FormItem className='flex items-center space-x-3 space-y-0'>
-                        <FormControl>
-                          <RadioGroupItem value='low' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>Thấp</FormLabel>
-                      </FormItem>
-                      <FormItem className='flex items-center space-x-3 space-y-0'>
-                        <FormControl>
-                          <RadioGroupItem value='medium' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>Trung bình</FormLabel>
-                      </FormItem>
-                      <FormItem className='flex items-center space-x-3 space-y-0'>
-                        <FormControl>
-                          <RadioGroupItem value='high' />
-                        </FormControl>
-                        <FormLabel className='font-normal'>Cao</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </form>
-        </Form>
-        <SheetFooter className='gap-2 sm:space-x-0'>
+                      placeholder='Chọn trạng thái'
+                      items={[
+                        { label: 'Cần làm (Todo)', value: 'todo' },
+                        { label: 'Đang thực hiện (In Progress)', value: 'in progress' },
+                        { label: 'Đang chờ (Backlog)', value: 'backlog' },
+                        { label: 'Đã hoàn thành (Done)', value: 'done' },
+                        { label: 'Đã hủy (Canceled)', value: 'canceled' },
+                      ]}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='label'
+                render={({ field }) => (
+                  <FormItem className='space-y-3'>
+                    <FormLabel>Nhãn dán</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className='flex flex-col space-y-1'
+                      >
+                        <FormItem className='flex items-center space-x-3 space-y-0'>
+                          <FormControl>
+                            <RadioGroupItem value='documentation' />
+                          </FormControl>
+                          <FormLabel className='font-normal'>Tài liệu</FormLabel>
+                        </FormItem>
+                        <FormItem className='flex items-center space-x-3 space-y-0'>
+                          <FormControl>
+                            <RadioGroupItem value='feature' />
+                          </FormControl>
+                          <FormLabel className='font-normal'>Tính năng</FormLabel>
+                        </FormItem>
+                        <FormItem className='flex items-center space-x-3 space-y-0'>
+                          <FormControl>
+                            <RadioGroupItem value='bug' />
+                          </FormControl>
+                          <FormLabel className='font-normal'>Lỗi / Vấn đề</FormLabel>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='priority'
+                render={({ field }) => (
+                  <FormItem className='space-y-3'>
+                    <FormLabel>Mức độ ưu tiên</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className='flex flex-col space-y-1'
+                      >
+                        <FormItem className='flex items-center space-x-3 space-y-0'>
+                          <FormControl>
+                            <RadioGroupItem value='low' />
+                          </FormControl>
+                          <FormLabel className='font-normal'>Thấp</FormLabel>
+                        </FormItem>
+                        <FormItem className='flex items-center space-x-3 space-y-0'>
+                          <FormControl>
+                            <RadioGroupItem value='medium' />
+                          </FormControl>
+                          <FormLabel className='font-normal'>Trung bình</FormLabel>
+                        </FormItem>
+                        <FormItem className='flex items-center space-x-3 space-y-0'>
+                          <FormControl>
+                            <RadioGroupItem value='high' />
+                          </FormControl>
+                          <FormLabel className='font-normal'>Cao</FormLabel>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </div>
+
+        {/* SheetFooter được giữ cố định ở đáy drawer luôn hiển thị rõ ràng */}
+        <SheetFooter className='gap-2 sm:space-x-0 pt-4 border-t shrink-0'>
           <SheetClose asChild>
             <Button type='button' variant='outline'>
               Đóng
