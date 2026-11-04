@@ -15,7 +15,7 @@ export const tasksColumns: ColumnDef<Task>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label='Select all'
+        aria-label='Chọn tất cả'
         className='translate-y-[2px]'
       />
     ),
@@ -23,7 +23,7 @@ export const tasksColumns: ColumnDef<Task>[] = [
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label='Select row'
+        aria-label='Chọn hàng'
         className='translate-y-[2px]'
       />
     ),
@@ -31,22 +31,19 @@ export const tasksColumns: ColumnDef<Task>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'id',
-    header: 'Task',
-    cell: ({ row }) => <div className='w-[80px]'>{row.getValue('id')}</div>,
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
     accessorKey: 'title',
-    header: 'Title',
+    header: 'Nhiệm vụ & Nhãn dán',
     cell: ({ row }) => {
       const label = labels.find((l) => l.value === row.original.label)
 
       return (
-        <div className='flex space-x-2'>
-          {label && <Badge variant='outline'>{label.label}</Badge>}
-          <span className='max-w-36 truncate font-medium sm:max-w-md md:max-w-lg'>
+        <div className='flex items-center space-x-3'>
+          {label && (
+            <Badge variant='outline' className='px-2.5 py-0.5 text-xs font-semibold'>
+              {label.label}
+            </Badge>
+          )}
+          <span className='max-w-[300px] truncate font-medium text-foreground sm:max-w-[400px]'>
             {row.getValue('title')}
           </span>
         </div>
@@ -55,7 +52,7 @@ export const tasksColumns: ColumnDef<Task>[] = [
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: 'Trạng thái',
     cell: ({ row }) => {
       const status = statuses.find(
         (s) => s.value === row.getValue('status')
@@ -66,7 +63,7 @@ export const tasksColumns: ColumnDef<Task>[] = [
       }
 
       return (
-        <div className='flex w-[100px] items-center'>
+        <div className='flex w-[130px] items-center'>
           {status.icon && (
             <status.icon className='mr-2 h-4 w-4 text-muted-foreground' />
           )}
@@ -80,7 +77,7 @@ export const tasksColumns: ColumnDef<Task>[] = [
   },
   {
     accessorKey: 'priority',
-    header: 'Priority',
+    header: 'Độ ưu tiên',
     cell: ({ row }) => {
       const priority = priorities.find(
         (p) => p.value === row.getValue('priority')
