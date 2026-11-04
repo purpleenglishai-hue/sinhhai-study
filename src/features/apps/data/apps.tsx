@@ -5,11 +5,9 @@ import {
   IconTrello,
   IconSlack,
   IconZoom,
-  IconStripe,
   IconGmail,
   IconMedium,
   IconSkype,
-  IconDocker,
   IconDiscord,
   IconWhatsapp,
 } from '@/assets/brand-icons'
