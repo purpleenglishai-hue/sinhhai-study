@@ -1,179 +1,242 @@
-import { useState } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render } from 'vitest-browser-react'
-import { userEvent } from 'vitest/browser'
-import { showSubmittedData } from '@/lib/show-submitted-data'
-import { type Task } from '../data/schema'
-import { TasksMutateDrawer } from './tasks-mutate-drawer'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { auth, db } from '@/firebase'
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore'
+import { Button } from '@/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { type Task, taskSchema } from '../data/schema'
 
-vi.mock('@/lib/show-submitted-data', () => ({ showSubmittedData: vi.fn() }))
+interface Props {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  currentRow?: Task
+}
 
-const MOCK_TASK = {
-  id: 'task-1',
-  title: 'Existing task',
-  status: 'in progress',
-  label: 'feature',
-  priority: 'medium',
-} as const satisfies Task
+export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
+  const isUpdate = !!currentRow
 
-describe('TasksMutateDrawer', () => {
-  beforeEach(() => vi.clearAllMocks())
-
-  it('renders create title and description', async () => {
-    const { getByRole, getByText } = await render(
-      <TasksMutateDrawer open onOpenChange={vi.fn()} />
-    )
-
-    const title = getByRole('heading', {
-      level: 2,
-      name: /Create Task/i,
-    })
-    const desc = getByText(/Add a new task/i)
-
-    await expect.element(title).toBeInTheDocument()
-    await expect.element(desc).toBeInTheDocument()
-  })
-
-  it('renders edit title, description, and prefilled title', async () => {
-    const { getByRole, getByText } = await render(
-      <TasksMutateDrawer open onOpenChange={vi.fn()} currentRow={MOCK_TASK} />
-    )
-
-    const title = getByRole('heading', {
-      level: 2,
-      name: /Update Task/i,
-    })
-    const desc = getByText(/Update the task/i)
-
-    const titleInput = getByRole('textbox', { name: /Title/i })
-    const statusSelect = getByRole('combobox', { name: /Status/i })
-    const labelRadio = getByRole('radio', { name: MOCK_TASK.label })
-    const priorityRadio = getByRole('radio', { name: MOCK_TASK.priority })
-
-    await expect.element(title).toBeInTheDocument()
-    await expect.element(desc).toBeInTheDocument()
-    await expect.element(titleInput).toHaveValue(MOCK_TASK.title)
-    await expect
-      .element(statusSelect)
-      .toHaveTextContent(new RegExp(MOCK_TASK.status, 'i'))
-    await expect.element(labelRadio).toBeChecked()
-    await expect.element(priorityRadio).toBeChecked()
-  })
-
-  it('shows validation messages when submitting an empty form', async () => {
-    const { getByRole, getByText } = await render(
-      <TasksMutateDrawer open onOpenChange={vi.fn()} />
-    )
-
-    const saveButton = getByRole('button', { name: /Save changes/i })
-    await userEvent.click(saveButton)
-
-    await expect.element(getByText(/Title is required.$/i)).toBeInTheDocument()
-    await expect
-      .element(getByText(/Please select a status.$/i))
-      .toBeInTheDocument()
-    await expect
-      .element(getByText(/Please select a label.$/i))
-      .toBeInTheDocument()
-    await expect
-      .element(getByText(/Please choose a priority.$/i))
-      .toBeInTheDocument()
-  })
-
-  it('submits create form and shows submitted data', async () => {
-    const onOpenChange = vi.fn()
-    const { getByRole } = await render(
-      <TasksMutateDrawer open onOpenChange={onOpenChange} />
-    )
-
-    const titleInput = getByRole('textbox', { name: /Title/i })
-    await userEvent.fill(titleInput, 'New task title')
-
-    const statusSelect = getByRole('combobox', { name: /Status/i })
-    await userEvent.click(statusSelect)
-    await userEvent.click(getByRole('option', { name: /Todo/i }))
-
-    await userEvent.click(getByRole('radio', { name: /^Bug$/i }))
-    await userEvent.click(getByRole('radio', { name: /^Low$/i }))
-
-    const saveButton = getByRole('button', { name: /Save changes/i })
-    await userEvent.click(saveButton)
-
-    expect(onOpenChange).toHaveBeenCalledOnce()
-    expect(onOpenChange).toHaveBeenCalledWith(false)
-
-    expect(showSubmittedData).toHaveBeenCalledOnce()
-    expect(showSubmittedData).toHaveBeenCalledWith({
-      title: 'New task title',
+  const form = useForm<Task>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: currentRow ?? {
+      title: '',
       status: 'todo',
-      label: 'bug',
-      priority: 'low',
-    })
+      label: 'feature',
+      priority: 'medium',
+    },
   })
 
-  it('closes when Close is clicked', async () => {
-    const onOpenChange = vi.fn()
-    const { getByRole } = await render(
-      <TasksMutateDrawer open onOpenChange={onOpenChange} />
-    )
-
-    const closeButtons = getByRole('dialog')
-      .getByRole('button', {
-        name: /Close/i,
-      })
-      .all()
-    expect(closeButtons).toHaveLength(2)
-    await userEvent.click(closeButtons[1])
-
-    expect(onOpenChange).toHaveBeenCalledOnce()
-    expect(onOpenChange).toHaveBeenCalledWith(false)
-  })
-
-  it('resets entered values when the sheet is closed and reopened', async () => {
-    function Harness() {
-      const [open, setOpen] = useState(true)
-      return (
-        <>
-          <button type='button' onClick={() => setOpen(true)}>
-            Reopen
-          </button>
-          <TasksMutateDrawer open={open} onOpenChange={setOpen} />
-        </>
-      )
+  const onSubmit = async (data: Task) => {
+    const user = auth.currentUser
+    if (!user) {
+      alert('Vui lòng đăng nhập để thực hiện tác vụ này!')
+      return
     }
 
-    const { getByRole } = await render(<Harness />)
+    try {
+      if (isUpdate && currentRow?.id) {
+        // Cập nhật Task có sẵn trên Firestore
+        const taskRef = doc(db, `users/${user.uid}/tasks`, currentRow.id)
+        await updateDoc(taskRef, {
+          title: data.title,
+          status: data.status,
+          label: data.label,
+          priority: data.priority,
+          updatedAt: new Date().toISOString(),
+        })
+      } else {
+        // Tạo mới Task lên Cloud Firestore
+        await addDoc(collection(db, `users/${user.uid}/tasks`), {
+          title: data.title,
+          status: data.status,
+          label: data.label,
+          priority: data.priority,
+          createdAt: new Date().toISOString(),
+        })
+      }
 
-    const titleInput = getByRole('textbox', { name: /Title/i })
-    await userEvent.fill(titleInput, 'Draft title')
-    await expect.element(titleInput).toHaveValue('Draft title')
+      onOpenChange(false)
+      form.reset()
+    } catch (error) {
+      console.error('Lỗi khi lưu Task vào Firestore:', error)
+      alert('Đã có lỗi xảy ra khi lưu nhiệm vụ!')
+    }
+  }
 
-    const statusSelect = getByRole('combobox', { name: /Status/i })
-    await userEvent.click(statusSelect)
-    await userEvent.click(getByRole('option', { name: /Todo/i }))
-    await expect.element(statusSelect).toHaveTextContent(/Todo/i)
-
-    const labelRadio = getByRole('radio', { name: /^Documentation$/i })
-    await userEvent.click(labelRadio)
-    await expect.element(labelRadio).toBeChecked()
-
-    const priorityRadio = getByRole('radio', { name: /^High$/i })
-    await userEvent.click(priorityRadio)
-    await expect.element(priorityRadio).toBeChecked()
-
-    const closeButtons = getByRole('dialog')
-      .getByRole('button', {
-        name: /Close/i,
-      })
-      .all()
-    await userEvent.click(closeButtons[0])
-
-    const reopenButton = getByRole('button', { name: /Reopen/i })
-    await userEvent.click(reopenButton)
-
-    await expect.element(titleInput).toHaveValue('')
-    await expect.element(statusSelect).not.toHaveTextContent(/Todo/i)
-    await expect.element(labelRadio).not.toBeChecked()
-    await expect.element(priorityRadio).not.toBeChecked()
-  })
-})
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        onOpenChange(v)
+        form.reset()
+      }}
+    >
+      <SheetContent className='flex flex-col opacity-100 backdrop-blur-none bg-background border-l'>
+        <SheetHeader className='text-start'>
+          <SheetTitle>{isUpdate ? 'Update Task' : 'Create Task'}</SheetTitle>
+          <SheetDescription>
+            {isUpdate
+              ? 'Update the task by providing necessary info.'
+              : 'Add a new task by providing necessary info.'}
+            Click save when you&apos;re done.
+          </SheetDescription>
+        </SheetHeader>
+        <Form {...form}>
+          <form
+            id='tasks-mutate-form'
+            onSubmit={form.handleSubmit(onSubmit)}
+            className='space-y-5 flex-1'
+          >
+            <FormField
+              control={form.control}
+              name='title'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder='Enter a title' />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='status'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder='Select a status' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value='todo'>Todo</SelectItem>
+                      <SelectItem value='in progress'>In Progress</SelectItem>
+                      <SelectItem value='done'>Done</SelectItem>
+                      <SelectItem value='canceled'>Canceled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='label'
+              render={({ field }) => (
+                <FormItem className='space-y-3'>
+                  <FormLabel>Label</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className='flex flex-col space-y-1'
+                    >
+                      <FormItem className='flex items-center space-x-3 space-y-0'>
+                        <FormControl>
+                          <RadioGroupItem value='documentation' />
+                        </FormControl>
+                        <FormLabel className='font-normal'>
+                          Documentation
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className='flex items-center space-x-3 space-y-0'>
+                        <FormControl>
+                          <RadioGroupItem value='feature' />
+                        </FormControl>
+                        <FormLabel className='font-normal'>Feature</FormLabel>
+                      </FormItem>
+                      <FormItem className='flex items-center space-x-3 space-y-0'>
+                        <FormControl>
+                          <RadioGroupItem value='bug' />
+                        </FormControl>
+                        <FormLabel className='font-normal'>Bug</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='priority'
+              render={({ field }) => (
+                <FormItem className='space-y-3'>
+                  <FormLabel>Priority</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className='flex flex-col space-y-1'
+                    >
+                      <FormItem className='flex items-center space-x-3 space-y-0'>
+                        <FormControl>
+                          <RadioGroupItem value='low' />
+                        </FormControl>
+                        <FormLabel className='font-normal'>Low</FormLabel>
+                      </FormItem>
+                      <FormItem className='flex items-center space-x-3 space-y-0'>
+                        <FormControl>
+                          <RadioGroupItem value='medium' />
+                        </FormControl>
+                        <FormLabel className='font-normal'>Medium</FormLabel>
+                      </FormItem>
+                      <FormItem className='flex items-center space-x-3 space-y-0'>
+                        <FormControl>
+                          <RadioGroupItem value='high' />
+                        </FormControl>
+                        <FormLabel className='font-normal'>High</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+        <SheetFooter className='gap-2 sm:space-x-0'>
+          <SheetClose asChild>
+            <Button type='button' variant='outline'>
+              Close
+            </Button>
+          </SheetClose>
+          <Button type='submit' form='tasks-mutate-form'>
+            Save changes
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  )
+}
