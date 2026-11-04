@@ -3,9 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { labels, priorities, statuses } from '../data/data'
 import { type Task } from '../data/schema'
-import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
-import { CalendarIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons'
 
 export const columns: ColumnDef<Task>[] = [
   {
@@ -34,9 +32,7 @@ export const columns: ColumnDef<Task>[] = [
   },
   {
     accessorKey: 'id',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Mã NV' />
-    ),
+    header: 'Mã NV',
     cell: ({ row }) => {
       const id = row.getValue('id') as string
       const shortId = id && id.length > 8 ? `#${id.substring(0, 6)}` : id
@@ -47,9 +43,7 @@ export const columns: ColumnDef<Task>[] = [
   },
   {
     accessorKey: 'title',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Tiêu đề nhiệm vụ' />
-    ),
+    header: 'Tiêu đề nhiệm vụ',
     cell: ({ row }) => {
       const label = labels.find((l) => l.value === row.original.label)
 
@@ -64,59 +58,8 @@ export const columns: ColumnDef<Task>[] = [
     },
   },
   {
-    accessorKey: 'startDate',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Ngày bắt đầu' />
-    ),
-    cell: ({ row }) => {
-      const date = row.getValue('startDate') as string
-      return (
-        <div className='flex items-center text-xs text-muted-foreground'>
-          <CalendarIcon className='mr-1.5 h-3.5 w-3.5' />
-          {date || 'Chưa đặt'}
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: 'dueDate',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Hạn chót (Deadline)' />
-    ),
-    cell: ({ row }) => {
-      const dueDateStr = row.getValue('dueDate') as string
-      const status = row.getValue('status') as string
-      
-      // Kiểm tra tính toán cảnh báo deadline
-      let isOverdue = false
-      if (dueDateStr && status !== 'done' && status !== 'canceled') {
-        const today = new Date()
-        const due = new Date(dueDateStr)
-        if (due < today) {
-          isOverdue = true
-        }
-      }
-
-      return (
-        <div className='flex items-center space-x-1.5 text-xs'>
-          <CalendarIcon className='h-3.5 w-3.5 text-muted-foreground' />
-          <span className={isOverdue ? 'font-bold text-destructive' : 'text-muted-foreground'}>
-            {dueDateStr || 'Không có'}
-          </span>
-          {isOverdue && (
-            <span title='Đã quá hạn!' className='flex items-center text-destructive'>
-              <ExclamationTriangleImportIcon className='h-4 w-4 animate-pulse' />
-            </span>
-          )}
-        </div>
-      )
-    },
-  },
-  {
     accessorKey: 'status',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Trạng thái' />
-    ),
+    header: 'Trạng thái',
     cell: ({ row }) => {
       const status = statuses.find(
         (s) => s.value === row.getValue('status')
@@ -141,9 +84,7 @@ export const columns: ColumnDef<Task>[] = [
   },
   {
     accessorKey: 'priority',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Độ ưu tiên' />
-    ),
+    header: 'Độ ưu tiên',
     cell: ({ row }) => {
       const priority = priorities.find(
         (p) => p.value === row.getValue('priority')
