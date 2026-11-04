@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import {
   BadgeCheck,
   Bell,
@@ -8,7 +8,7 @@ import {
   LogOut,
   Sparkles,
 } from 'lucide-react'
-import { auth } from '@/configs/firebase'
+import { auth } from '@/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import useDialogState from '@/hooks/use-dialog-state'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -31,7 +31,6 @@ import { SignOutDialog } from '@/components/sign-out-dialog'
 
 export function NavUser() {
   const { isMobile } = useSidebar()
-  const navigate = useNavigate()
   const [open, setOpen] = useDialogState()
 
   // State lưu trữ thông tin thực tế từ Firebase Auth
@@ -44,7 +43,7 @@ export function NavUser() {
     return () => unsubscribe()
   }, [])
 
-  // Xử lý dữ liệu hiển thị (Lấy thông tin thật từ tài khoản đăng nhập hoặc giá trị mặc định phòng hờ)
+  // Xử lý dữ liệu hiển thị thực tế từ tài khoản đăng nhập
   const userData = {
     name: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'SinhHAI User',
     email: currentUser?.email || 'user@sinhhai.study',
