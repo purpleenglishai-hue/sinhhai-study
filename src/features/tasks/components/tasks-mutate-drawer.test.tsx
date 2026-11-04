@@ -59,7 +59,6 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
 
     try {
       if (isUpdate && currentRow?.id) {
-        // Cập nhật Task có sẵn trên Firestore
         const taskRef = doc(db, `users/${user.uid}/tasks`, currentRow.id)
         await updateDoc(taskRef, {
           title: data.title,
@@ -69,7 +68,6 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
           updatedAt: new Date().toISOString(),
         })
       } else {
-        // Tạo mới Task lên Cloud Firestore
         await addDoc(collection(db, `users/${user.uid}/tasks`), {
           title: data.title,
           status: data.status,
@@ -97,12 +95,11 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
     >
       <SheetContent className='flex flex-col opacity-100 backdrop-blur-none bg-background border-l'>
         <SheetHeader className='text-start'>
-          <SheetTitle>{isUpdate ? 'Update Task' : 'Create Task'}</SheetTitle>
+          <SheetTitle>{isUpdate ? 'Cập nhật nhiệm vụ' : 'Tạo nhiệm vụ mới'}</SheetTitle>
           <SheetDescription>
             {isUpdate
-              ? 'Update the task by providing necessary info.'
-              : 'Add a new task by providing necessary info.'}
-            Click save when you&apos;re done.
+              ? 'Chỉnh sửa thông tin chi tiết của nhiệm vụ.'
+              : 'Thêm nhiệm vụ mới vào hệ thống của bạn.'}
           </SheetDescription>
         </SheetHeader>
         <Form {...form}>
@@ -116,9 +113,9 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
               name='title'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
+                  <FormLabel>Tiêu đề</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder='Enter a title' />
+                    <Input {...field} placeholder='Nhập tiêu đề nhiệm vụ...' />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -129,21 +126,21 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
               name='status'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel>Trạng thái</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder='Select a status' />
+                        <SelectValue placeholder='Chọn trạng thái' />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value='todo'>Todo</SelectItem>
-                      <SelectItem value='in progress'>In Progress</SelectItem>
-                      <SelectItem value='done'>Done</SelectItem>
-                      <SelectItem value='canceled'>Canceled</SelectItem>
+                      <SelectItem value='todo'>Cần làm (Todo)</SelectItem>
+                      <SelectItem value='in progress'>Đang thực hiện</SelectItem>
+                      <SelectItem value='done'>Đã hoàn thành</SelectItem>
+                      <SelectItem value='canceled'>Đã hủy</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -155,7 +152,7 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
               name='label'
               render={({ field }) => (
                 <FormItem className='space-y-3'>
-                  <FormLabel>Label</FormLabel>
+                  <FormLabel>Nhãn dán</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -166,21 +163,19 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                         <FormControl>
                           <RadioGroupItem value='documentation' />
                         </FormControl>
-                        <FormLabel className='font-normal'>
-                          Documentation
-                        </FormLabel>
+                        <FormLabel className='font-normal'>Tài liệu</FormLabel>
                       </FormItem>
                       <FormItem className='flex items-center space-x-3 space-y-0'>
                         <FormControl>
                           <RadioGroupItem value='feature' />
                         </FormControl>
-                        <FormLabel className='font-normal'>Feature</FormLabel>
+                        <FormLabel className='font-normal'>Tính năng</FormLabel>
                       </FormItem>
                       <FormItem className='flex items-center space-x-3 space-y-0'>
                         <FormControl>
                           <RadioGroupItem value='bug' />
                         </FormControl>
-                        <FormLabel className='font-normal'>Bug</FormLabel>
+                        <FormLabel className='font-normal'>Lỗi / Vấn đề</FormLabel>
                       </FormItem>
                     </RadioGroup>
                   </FormControl>
@@ -193,7 +188,7 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
               name='priority'
               render={({ field }) => (
                 <FormItem className='space-y-3'>
-                  <FormLabel>Priority</FormLabel>
+                  <FormLabel>Mức độ ưu tiên</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -204,19 +199,19 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                         <FormControl>
                           <RadioGroupItem value='low' />
                         </FormControl>
-                        <FormLabel className='font-normal'>Low</FormLabel>
+                        <FormLabel className='font-normal'>Thấp</FormLabel>
                       </FormItem>
                       <FormItem className='flex items-center space-x-3 space-y-0'>
                         <FormControl>
                           <RadioGroupItem value='medium' />
                         </FormControl>
-                        <FormLabel className='font-normal'>Medium</FormLabel>
+                        <FormLabel className='font-normal'>Trung bình</FormLabel>
                       </FormItem>
                       <FormItem className='flex items-center space-x-3 space-y-0'>
                         <FormControl>
                           <RadioGroupItem value='high' />
                         </FormControl>
-                        <FormLabel className='font-normal'>High</FormLabel>
+                        <FormLabel className='font-normal'>Cao</FormLabel>
                       </FormItem>
                     </RadioGroup>
                   </FormControl>
@@ -229,11 +224,11 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
         <SheetFooter className='gap-2 sm:space-x-0'>
           <SheetClose asChild>
             <Button type='button' variant='outline'>
-              Close
+              Đóng
             </Button>
           </SheetClose>
           <Button type='submit' form='tasks-mutate-form'>
-            Save changes
+            Lưu thay đổi
           </Button>
         </SheetFooter>
       </SheetContent>
