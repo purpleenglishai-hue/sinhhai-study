@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { auth, db } from '@/firebase'
@@ -23,7 +24,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { SelectDropdown } from '@/components/select-dropdown'
-import { type Task, taskSchema } from '../data/schema'
+import { type Task } from '../data/schema'
 
 interface Props {
   open: boolean
@@ -31,12 +32,27 @@ interface Props {
   currentRow?: Task
 }
 
+// Định nghĩa schema riêng cho form để tránh lỗi validate ngầm
+const formSchema = z.object({
+  title: z.string().min(1, 'Tiêu đề không được để trống.'),
+  status: z.string().min(1, 'Vui lòng chọn trạng thái.'),
+  label: z.string().min(1, 'Vui lòng chọn nhãn dán.'),
+  priority: z.string().min(1, 'Vui lòng chọn mức độ ưu tiên.'),
+})
+
+type TaskFormValues = z.infer<typeof formSchema>
+
 export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
   const isUpdate = !!currentRow
 
-  const form = useForm<Task>({
-    resolver: zodResolver(taskSchema),
-    defaultValues: currentRow ?? {
+  const form = useForm<TaskFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: currentRow ? {
+      title: currentRow.title || '',
+      status: currentRow.status || 'todo',
+      label: currentRow.label || 'feature',
+      priority: currentRow.priority || 'medium',
+    } : {
       title: '',
       status: 'todo',
       label: 'feature',
@@ -44,8 +60,8 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
     },
   })
 
-  // Hàm đẩy dữ liệu THẬT lên Cloud Firestore
-  const onSubmit = async (data: Task) => {
+  // Hàm xử lý lưu dữ liệu THẬT trực tiếp lên Cloud Firestore
+  const onSubmit = async (data: TaskFormValues) => {
     const user = auth.currentUser
     if (!user) {
       alert('Vui lòng đăng nhập để thực hiện tác vụ này!')
@@ -98,8 +114,8 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
           </SheetDescription>
         </SheetHeader>
 
-        {/* Khu vực chứa form có thanh cuộn dọc (overflow-y-auto) giúp hiện đầy đủ nội dung */}
-        <div className='flex-1 overflow-y-auto pr-1 py-2'>
+        {/* Khu vực nội dung có thanh cuộn dọc (overflow-y-auto) */}
+        <div className='flex-1 overflow-y-auto pr-2 py-2'>
           <Form {...form}>
             <form
               id='tasks-mutate-form'
@@ -150,7 +166,7 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         className='flex flex-col space-y-1'
                       >
                         <FormItem className='flex items-center space-x-3 space-y-0'>
@@ -186,7 +202,7 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
                     <FormControl>
                       <RadioGroup
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         className='flex flex-col space-y-1'
                       >
                         <FormItem className='flex items-center space-x-3 space-y-0'>
@@ -223,7 +239,6 @@ export function TasksMutateDrawer({ open, onOpenChange, currentRow }: Props) {
               Đóng
             </Button>
           </SheetClose>
-          {/* Nút submit liên kết chính xác với id của form bên trên */}
           <Button type='submit' form='tasks-mutate-form'>
             Lưu thay đổi
           </Button>
