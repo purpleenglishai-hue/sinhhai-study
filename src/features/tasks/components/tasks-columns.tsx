@@ -1,12 +1,12 @@
 import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { DataTableColumnHeader } from '@/components/data-table'
 import { labels, priorities, statuses } from '../data/data'
 import { type Task } from '../data/schema'
+import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
 
-export const tasksColumns: ColumnDef<Task>[] = [
+export const columns: ColumnDef<Task>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -16,16 +16,16 @@ export const tasksColumns: ColumnDef<Task>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label='Select all'
-        className='translate-y-0.5'
+        aria-label='Chọn tất cả'
+        className='translate-y-[2px]'
       />
     ),
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label='Select row'
-        className='translate-y-0.5'
+        aria-label='Chọn hàng'
+        className='translate-y-[2px]'
       />
     ),
     enableSorting: false,
@@ -34,28 +34,31 @@ export const tasksColumns: ColumnDef<Task>[] = [
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Task' />
+      <DataTableColumnHeader column={column} title='Mã NV' />
     ),
-    cell: ({ row }) => <div className='w-20'>{row.getValue('id')}</div>,
+    cell: ({ row }) => {
+      const id = row.getValue('id') as string
+      // Rút gọn ID Firestore cho gọn gàng nếu quá dài
+      const shortId = id && id.length > 8 ? `#${id.substring(0, 6)}` : id
+      return <div className='w-[80px] font-mono text-xs text-muted-foreground'>{shortId}</div>
+    },
     enableSorting: false,
     enableHiding: false,
   },
   {
     accessorKey: 'title',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Title' />
+      <DataTableColumnHeader column={column} title='Tiêu đề nhiệm vụ' />
     ),
-    meta: {
-      className: 'ps-1 max-w-0 w-2/3',
-      tdClassName: 'ps-4',
-    },
     cell: ({ row }) => {
-      const label = labels.find((label) => label.value === row.original.label)
+      const label = labels.find((l) => l.value === row.original.label)
 
       return (
         <div className='flex space-x-2'>
           {label && <Badge variant='outline'>{label.label}</Badge>}
-          <span className='truncate font-medium'>{row.getValue('title')}</span>
+          <span className='max-w-36 truncate font-medium sm:max-w-md md:max-w-lg'>
+            {row.getValue('title')}
+          </span>
         </div>
       )
     },
@@ -63,12 +66,11 @@ export const tasksColumns: ColumnDef<Task>[] = [
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Status' />
+      <DataTableColumnHeader column={column} title='Trạng thái' />
     ),
-    meta: { className: 'ps-1', tdClassName: 'ps-4' },
     cell: ({ row }) => {
       const status = statuses.find(
-        (status) => status.value === row.getValue('status')
+        (s) => s.value === row.getValue('status')
       )
 
       if (!status) {
@@ -76,9 +78,9 @@ export const tasksColumns: ColumnDef<Task>[] = [
       }
 
       return (
-        <div className='flex w-25 items-center gap-2'>
+        <div className='flex w-[120px] items-center'>
           {status.icon && (
-            <status.icon className='size-4 text-muted-foreground' />
+            <status.icon className='mr-2 h-4 w-4 text-muted-foreground' />
           )}
           <span>{status.label}</span>
         </div>
@@ -91,12 +93,11 @@ export const tasksColumns: ColumnDef<Task>[] = [
   {
     accessorKey: 'priority',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Priority' />
+      <DataTableColumnHeader column={column} title='Độ ưu tiên' />
     ),
-    meta: { className: 'ps-1', tdClassName: 'ps-3' },
     cell: ({ row }) => {
       const priority = priorities.find(
-        (priority) => priority.value === row.getValue('priority')
+        (p) => p.value === row.getValue('priority')
       )
 
       if (!priority) {
@@ -104,9 +105,9 @@ export const tasksColumns: ColumnDef<Task>[] = [
       }
 
       return (
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center'>
           {priority.icon && (
-            <priority.icon className='size-4 text-muted-foreground' />
+            <priority.icon className='mr-2 h-4 w-4 text-muted-foreground' />
           )}
           <span>{priority.label}</span>
         </div>
