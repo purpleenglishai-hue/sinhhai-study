@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react'
+import { auth, db } from '@/firebase'
+import { collection, getDocs } from 'firebase/firestore'
 import {
   Card,
   CardContent,
@@ -7,6 +10,38 @@ import {
 } from '@/components/ui/card'
 
 export function Analytics() {
+  const [completedCount, setCompletedCount] = useState(0)
+  const [totalCount, setTotalCount] = useState(0)
+
+  useEffect(() => {
+    const fetchRealStats = async () => {
+      const user = auth.currentUser
+      if (!user) return
+
+      try {
+        const querySnapshot = await getDocs(collection(db, `users/${user.uid}/tasks`))
+        let total = 0
+        let completed = 0
+
+        querySnapshot.forEach((doc) => {
+          total++
+          if (doc.data().status === 'done') {
+            completed++
+          }
+        })
+
+        setTotalCount(total)
+        setCompletedCount(completed)
+      } catch (error) {
+        console.error('Lỗi tải thống kê phân tích:', error)
+      }
+    }
+
+    fetchRealStats()
+  }, [])
+
+  const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+
   return (
     <div className='space-y-4'>
       <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
@@ -24,12 +59,14 @@ export function Analytics() {
               className='h-4 w-4 text-green-600'
             >
               <path d='M22 11.08V12a10 10 0 1 1-5.93-9.14' />
-              polyline points='22 4 12 14.01 9 11.01'
+              <polyline points='22 4 12 14.01 9 11.01' />
             </svg>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold text-green-600'>Tốt</div>
-            <p className='text-xs text-muted-foreground'>Duy trì tiến độ học tập đều đặn</p>
+            <div className='text-2xl font-bold text-green-600'>
+              {totalCount > 0 ? `${completionRate}%` : '0%'}
+            </div>
+            <p className='text-xs text-muted-foreground'>Dựa trên nhiệm vụ thực tế</p>
           </CardContent>
         </Card>
         <Card>
@@ -78,7 +115,7 @@ export function Analytics() {
         </Card>
         <Card>
           <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Nền tảng vận hành</CardTitle>
+            <CardTitle className='text-sm font-medium'>Dữ liệu cá nhân</CardTitle>
             <svg
               xmlns='http://www.w3.org/2000/svg'
               viewBox='0 0 24 24'
@@ -89,14 +126,12 @@ export function Analytics() {
               strokeWidth='2'
               className='h-4 w-4 text-muted-foreground'
             >
-              <circle cx='12' cy='12' r='10' />
-              <path d='M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z' />
-              <path d='M2 12h20' />
+              <path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' />
             </svg>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>Firebase</div>
-            <p className='text-xs text-muted-foreground'>Đồng bộ thời gian thực</p>
+            <div className='text-2xl font-bold'>Bảo mật</div>
+            <p className='text-xs text-muted-foreground'>Lưu trữ riêng tư tuyệt đối</p>
           </CardContent>
         </Card>
       </div>
@@ -105,18 +140,16 @@ export function Analytics() {
         <Card className='col-span-1 lg:col-span-4'>
           <CardHeader>
             <CardTitle>Trạng thái phân bổ nhiệm vụ</CardTitle>
-            <CardDescription>Tỷ lệ hoàn thành công việc và học tập</CardDescription>
+            <CardDescription>Tổng hợp toàn bộ nhiệm vụ học tập</CardDescription>
           </CardHeader>
           <CardContent>
             <SimpleBarList
               items={[
-                { name: 'Đã hoàn thành', value: 85 },
-                { name: 'Đang thực hiện', value: 60 },
-                { name: 'Chưa bắt đầu', value: 25 },
-                { name: 'Cần lưu ý / Quá hạn', value: 10 },
+                { name: 'Đã hoàn thành', value: completedCount },
+                { name: 'Tổng số nhiệm vụ', value: totalCount },
               ]}
               barClass='bg-primary'
-              valueFormatter={(n) => `${n}%`}
+              valueFormatter={(n) => `${n} task`}
             />
           </CardContent>
         </Card>
