@@ -1,83 +1,75 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useEffect, useState } from 'react'
+import { auth, db } from '@/firebase'
+import { collection, getDocs, query, limit } from 'firebase/firestore'
+import { Badge } from '@/components/ui/badge'
+import { CheckCircle2, Clock } from 'lucide-react'
+
+interface TaskItem {
+  id: string
+  title: string
+  status: string
+  dueDate?: string
+}
 
 export function RecentSales() {
+  const [tasks, setTasks] = useState<TaskItem[]>([])
+
+  useEffect(() => {
+    const fetchRecentTasks = async () => {
+      const user = auth.currentUser
+      if (!user) return
+
+      try {
+        const q = query(collection(db, `users/${user.uid}/tasks`), limit(5))
+        const querySnapshot = await getDocs(q)
+        const taskList: TaskItem[] = []
+        querySnapshot.forEach((doc) => {
+          taskList.push({ id: doc.id, ...doc.data() } as TaskItem)
+        })
+        setTasks(taskList)
+      } catch (error) {
+        console.error('Lỗi tải nhiệm vụ gần đây:', error)
+      }
+    }
+
+    fetchRecentTasks()
+  }, [])
+
+  if (tasks.length === 0) {
+    return (
+      <div className='text-sm text-muted-foreground py-6 text-center'>
+        Chưa có nhiệm vụ nào. Hãy tạo nhiệm vụ mới để bắt đầu!
+      </div>
+    )
+  }
+
   return (
-    <div className='space-y-8'>
-      <div className='flex items-center gap-4'>
-        <Avatar className='h-9 w-9'>
-          <AvatarImage src='/avatars/01.png' alt='Avatar' />
-          <AvatarFallback>OM</AvatarFallback>
-        </Avatar>
-        <div className='flex flex-1 flex-wrap items-center justify-between'>
-          <div className='space-y-1'>
-            <p className='text-sm leading-none font-medium'>Olivia Martin</p>
-            <p className='text-sm text-muted-foreground'>
-              olivia.martin@email.com
-            </p>
+    <div className='space-y-6'>
+      {tasks.map((task) => (
+        <div key={task.id} className='flex items-center justify-between'>
+          <div className='flex items-center gap-3 pr-2'>
+            {task.status === 'done' ? (
+              <CheckCircle2 className='h-5 w-5 text-green-600 shrink-0' />
+            ) : (
+              <Clock className='h-5 w-5 text-blue-600 shrink-0' />
+            )}
+            <div className='space-y-1'>
+              <p className='text-sm font-medium leading-none text-foreground truncate max-w-[180px] sm:max-w-[220px]'>
+                {task.title}
+              </p>
+              <p className='text-xs text-muted-foreground'>
+                Hạn chót: {task.dueDate ? task.dueDate : 'Không có'}
+              </p>
+            </div>
           </div>
-          <div className='font-medium'>+$1,999.00</div>
+          <Badge
+            variant={task.status === 'done' ? 'default' : 'outline'}
+            className='text-xs shrink-0'
+          >
+            {task.status === 'done' ? 'Hoàn thành' : 'Cần làm'}
+          </Badge>
         </div>
-      </div>
-      <div className='flex items-center gap-4'>
-        <Avatar className='flex h-9 w-9 items-center justify-center space-y-0 border'>
-          <AvatarImage src='/avatars/02.png' alt='Avatar' />
-          <AvatarFallback>JL</AvatarFallback>
-        </Avatar>
-        <div className='flex flex-1 flex-wrap items-center justify-between'>
-          <div className='space-y-1'>
-            <p className='text-sm leading-none font-medium'>Jackson Lee</p>
-            <p className='text-sm text-muted-foreground'>
-              jackson.lee@email.com
-            </p>
-          </div>
-          <div className='font-medium'>+$39.00</div>
-        </div>
-      </div>
-      <div className='flex items-center gap-4'>
-        <Avatar className='h-9 w-9'>
-          <AvatarImage src='/avatars/03.png' alt='Avatar' />
-          <AvatarFallback>IN</AvatarFallback>
-        </Avatar>
-        <div className='flex flex-1 flex-wrap items-center justify-between'>
-          <div className='space-y-1'>
-            <p className='text-sm leading-none font-medium'>Isabella Nguyen</p>
-            <p className='text-sm text-muted-foreground'>
-              isabella.nguyen@email.com
-            </p>
-          </div>
-          <div className='font-medium'>+$299.00</div>
-        </div>
-      </div>
-
-      <div className='flex items-center gap-4'>
-        <Avatar className='h-9 w-9'>
-          <AvatarImage src='/avatars/04.png' alt='Avatar' />
-          <AvatarFallback>WK</AvatarFallback>
-        </Avatar>
-        <div className='flex flex-1 flex-wrap items-center justify-between'>
-          <div className='space-y-1'>
-            <p className='text-sm leading-none font-medium'>William Kim</p>
-            <p className='text-sm text-muted-foreground'>will@email.com</p>
-          </div>
-          <div className='font-medium'>+$99.00</div>
-        </div>
-      </div>
-
-      <div className='flex items-center gap-4'>
-        <Avatar className='h-9 w-9'>
-          <AvatarImage src='/avatars/05.png' alt='Avatar' />
-          <AvatarFallback>SD</AvatarFallback>
-        </Avatar>
-        <div className='flex flex-1 flex-wrap items-center justify-between'>
-          <div className='space-y-1'>
-            <p className='text-sm leading-none font-medium'>Sofia Davis</p>
-            <p className='text-sm text-muted-foreground'>
-              sofia.davis@email.com
-            </p>
-          </div>
-          <div className='font-medium'>+$39.00</div>
-        </div>
-      </div>
+      ))}
     </div>
   )
 }
