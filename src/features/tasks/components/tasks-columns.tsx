@@ -38,7 +38,6 @@ export const columns: ColumnDef<Task>[] = [
     ),
     cell: ({ row }) => {
       const id = row.getValue('id') as string
-      // Rút gọn ID Firestore cho gọn gàng nếu quá dài
       const shortId = id && id.length > 8 ? `#${id.substring(0, 6)}` : id
       return <div className='w-[80px] font-mono text-xs text-muted-foreground'>{shortId}</div>
     },
