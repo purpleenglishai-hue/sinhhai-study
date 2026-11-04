@@ -1,77 +1,70 @@
 import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  Circle,
-  CheckCircle,
-  AlertCircle,
-  Timer,
-  HelpCircle,
-  CircleOff,
-} from 'lucide-react'
+  ArrowDownIcon,
+  ArrowRightIcon,
+  ArrowUpIcon,
+  CheckCircle2Icon,
+  CircleIcon,
+  HelpCircleIcon,
+  StopwatchIcon,
+} from '@radix-ui/react-icons'
 
 export const labels = [
   {
     value: 'bug',
-    label: 'Bug',
+    label: 'Lỗi / Vấn đề',
   },
   {
     value: 'feature',
-    label: 'Feature',
+    label: 'Tính năng',
   },
   {
     value: 'documentation',
-    label: 'Documentation',
+    label: 'Tài liệu',
   },
 ]
 
 export const statuses = [
   {
-    label: 'Backlog',
-    value: 'backlog' as const,
-    icon: HelpCircle,
+    value: 'backlog',
+    label: 'Đang chờ',
+    icon: HelpCircleIcon,
   },
   {
-    label: 'Todo',
-    value: 'todo' as const,
-    icon: Circle,
+    value: 'todo',
+    label: 'Cần làm',
+    icon: CircleIcon,
   },
   {
-    label: 'In Progress',
-    value: 'in progress' as const,
-    icon: Timer,
+    value: 'in progress',
+    label: 'Đang thực hiện',
+    icon: StopwatchIcon,
   },
   {
-    label: 'Done',
-    value: 'done' as const,
-    icon: CheckCircle,
+    value: 'done',
+    label: 'Đã hoàn thành',
+    icon: CheckCircle2Icon,
   },
   {
-    label: 'Canceled',
-    value: 'canceled' as const,
-    icon: CircleOff,
+    value: 'canceled',
+    label: 'Đã hủy',
+    icon: StopwatchIcon,
   },
 ]
 
 export const priorities = [
   {
-    label: 'Low',
-    value: 'low' as const,
-    icon: ArrowDown,
+    value: 'low',
+    label: 'Thấp',
+    icon: ArrowDownIcon,
   },
   {
-    label: 'Medium',
-    value: 'medium' as const,
-    icon: ArrowRight,
+    value: 'medium',
+    label: 'Trung bình',
+    icon: ArrowRightIcon,
   },
   {
-    label: 'High',
-    value: 'high' as const,
-    icon: ArrowUp,
-  },
-  {
-    label: 'Critical',
-    value: 'critical' as const,
-    icon: AlertCircle,
+    value: 'high',
+    label: 'Cao',
+    icon: ArrowUpIcon,
   },
 ]
