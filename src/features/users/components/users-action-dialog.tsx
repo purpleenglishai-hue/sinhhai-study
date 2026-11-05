@@ -28,7 +28,6 @@ import { PasswordInput } from '@/components/password-input'
 import { SelectDropdown } from '@/components/select-dropdown'
 import { type User } from '../data/schema'
 
-// Danh sách các vai trò phù hợp với môi trường học thuật
 const academicRoles = [
   { label: 'Học sinh / Sinh viên', value: 'student' },
   { label: 'Giảng viên / Giáo viên', value: 'teacher' },
@@ -52,50 +51,35 @@ const formSchema = z
       if (data.isEdit && !data.password) return true
       return data.password.length > 0
     },
-    {
-      message: 'Vui lòng nhập mật khẩu.',
-      path: ['password'],
-    }
+    { message: 'Vui lòng nhập mật khẩu.', path: ['password'] }
   )
   .refine(
     ({ isEdit, password }) => {
       if (isEdit && !password) return true
       return password.length >= 8
     },
-    {
-      message: 'Mật khẩu phải có ít nhất 8 ký tự.',
-      path: ['password'],
-    }
+    { message: 'Mật khẩu phải có ít nhất 8 ký tự.', path: ['password'] }
   )
   .refine(
     ({ isEdit, password }) => {
       if (isEdit && !password) return true
       return /[a-z]/.test(password)
     },
-    {
-      message: 'Mật khẩu phải chứa ít nhất 1 chữ cái viết thường.',
-      path: ['password'],
-    }
+    { message: 'Mật khẩu phải chứa ít nhất 1 chữ cái viết thường.', path: ['password'] }
   )
   .refine(
     ({ isEdit, password }) => {
       if (isEdit && !password) return true
       return /\d/.test(password)
     },
-    {
-      message: 'Mật khẩu phải chứa ít nhất 1 chữ số.',
-      path: ['password'],
-    }
+    { message: 'Mật khẩu phải chứa ít nhất 1 chữ số.', path: ['password'] }
   )
   .refine(
     ({ isEdit, password, confirmPassword }) => {
       if (isEdit && !password) return true
       return password === confirmPassword
     },
-    {
-      message: 'Mật khẩu xác nhận không khớp.',
-      path: ['confirmPassword'],
-    }
+    { message: 'Mật khẩu xác nhận không khớp.', path: ['confirmPassword'] }
   )
 
 type UserForm = z.infer<typeof formSchema>
@@ -139,13 +123,12 @@ export function UsersActionDialog({
         },
   })
 
-  // Hàm xử lý lưu thật xuống Firebase Firestore
+  // Lưu dữ liệu vào collection 'study_members' riêng biệt
   const onSubmit = async (values: UserForm) => {
     setLoading(true)
     try {
       if (isEdit && currentRow?.id) {
-        // Cập nhật thông tin user hiện tại
-        const userRef = doc(db, 'users', currentRow.id)
+        const userRef = doc(db, 'study_members', currentRow.id)
         await updateDoc(userRef, {
           name: values.fullName,
           username: values.username,
@@ -155,14 +138,13 @@ export function UsersActionDialog({
           updatedAt: serverTimestamp(),
         })
       } else {
-        // Thêm mới user vào Firestore collection 'users'
-        await addDoc(collection(db, 'users'), {
+        await addDoc(collection(db, 'study_members'), {
           name: values.fullName,
           username: values.username,
           email: values.email,
           phoneNumber: values.phoneNumber,
           role: values.role,
-          status: 'active', // Trạng thái mặc định khi thêm thủ công
+          status: 'active',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         })
@@ -170,9 +152,9 @@ export function UsersActionDialog({
 
       form.reset()
       onOpenChange(false)
-      window.location.reload() // Tải lại trang để cập nhật danh sách bảng ngay lập tức
+      window.location.reload()
     } catch (error) {
-      console.error('Lỗi khi lưu dữ liệu lên Firebase: ', error)
+      console.error('Lỗi khi lưu dữ liệu thành viên: ', error)
       alert('Có lỗi xảy ra khi lưu dữ liệu. Vui lòng thử lại!')
     } finally {
       setLoading(false)
@@ -192,12 +174,12 @@ export function UsersActionDialog({
       <DialogContent className='sm:max-w-lg'>
         <DialogHeader className='text-start'>
           <DialogTitle>
-            {isEdit ? 'Chỉnh sửa tài khoản' : 'Thêm người dùng mới'}
+            {isEdit ? 'Chỉnh sửa tài khoản' : 'Thêm thành viên mới'}
           </DialogTitle>
           <DialogDescription>
             {isEdit
-              ? 'Cập nhật thông tin người dùng tại đây. '
-              : 'Tạo tài khoản người dùng mới cho hệ thống. '}
+              ? 'Cập nhật thông tin thành viên tại đây. '
+              : 'Thêm thành viên mới vào hệ thống học tập. '}
             Nhấn lưu khi hoàn tất.
           </DialogDescription>
         </DialogHeader>
@@ -208,50 +190,34 @@ export function UsersActionDialog({
               onSubmit={form.handleSubmit(onSubmit)}
               className='space-y-4 px-0.5'
             >
-              {/* Họ và tên */}
               <FormField
                 control={form.control}
                 name='fullName'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      Họ và tên
-                    </FormLabel>
+                    <FormLabel className='col-span-2 text-end'>Họ và tên</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder='Ví dụ: Nguyễn Văn A'
-                        className='col-span-4'
-                        autoComplete='off'
-                        {...field}
-                      />
+                      <Input placeholder='Ví dụ: Nguyễn Văn A' className='col-span-4' autoComplete='off' {...field} />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}
               />
 
-              {/* Tên đăng nhập */}
               <FormField
                 control={form.control}
                 name='username'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      Tên đăng nhập
-                    </FormLabel>
+                    <FormLabel className='col-span-2 text-end'>Tên đăng nhập</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder='ví dụ: nguyenvana'
-                        className='col-span-4'
-                        {...field}
-                      />
+                      <Input placeholder='ví dụ: nguyenvana' className='col-span-4' {...field} />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}
               />
 
-              {/* Email */}
               <FormField
                 control={form.control}
                 name='email'
@@ -259,39 +225,27 @@ export function UsersActionDialog({
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
                     <FormLabel className='col-span-2 text-end'>Email</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder='nguyenvana@gmail.com'
-                        className='col-span-4'
-                        {...field}
-                      />
+                      <Input placeholder='nguyenvana@gmail.com' className='col-span-4' {...field} />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}
               />
 
-              {/* Số điện thoại */}
               <FormField
                 control={form.control}
                 name='phoneNumber'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      Số điện thoại
-                    </FormLabel>
+                    <FormLabel className='col-span-2 text-end'>Số điện thoại</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder='0912345678'
-                        className='col-span-4'
-                        {...field}
-                      />
+                      <Input placeholder='0912345678' className='col-span-4' {...field} />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}
               />
 
-              {/* Vai trò */}
               <FormField
                 control={form.control}
                 name='role'
@@ -310,43 +264,28 @@ export function UsersActionDialog({
                 )}
               />
 
-              {/* Mật khẩu */}
               <FormField
                 control={form.control}
                 name='password'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      Mật khẩu
-                    </FormLabel>
+                    <FormLabel className='col-span-2 text-end'>Mật khẩu</FormLabel>
                     <FormControl>
-                      <PasswordInput
-                        placeholder={isEdit ? 'Để trống nếu không đổi' : 'Nhập mật khẩu'}
-                        className='col-span-4'
-                        {...field}
-                      />
+                      <PasswordInput placeholder={isEdit ? 'Để trống nếu không đổi' : 'Nhập mật khẩu'} className='col-span-4' {...field} />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
                 )}
               />
 
-              {/* Xác nhận mật khẩu */}
               <FormField
                 control={form.control}
                 name='confirmPassword'
                 render={({ field }) => (
                   <FormItem className='grid grid-cols-6 items-center space-y-0 gap-x-4 gap-y-1'>
-                    <FormLabel className='col-span-2 text-end'>
-                      Xác nhận MK
-                    </FormLabel>
+                    <FormLabel className='col-span-2 text-end'>Xác nhận MK</FormLabel>
                     <FormControl>
-                      <PasswordInput
-                        disabled={!isPasswordTouched && !isEdit}
-                        placeholder='Nhập lại mật khẩu'
-                        className='col-span-4'
-                        {...field}
-                      />
+                      <PasswordInput disabled={!isPasswordTouched && !isEdit} placeholder='Nhập lại mật khẩu' className='col-span-4' {...field} />
                     </FormControl>
                     <FormMessage className='col-span-4 col-start-3' />
                   </FormItem>
