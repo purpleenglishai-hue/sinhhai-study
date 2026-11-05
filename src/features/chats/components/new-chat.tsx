@@ -27,7 +27,7 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
   const [allUsers, setAllUsers] = useState<any[]>([])
   const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  currentUser = auth.currentUser
+  const currentUser = auth.currentUser // Đã bổ sung từ khóa const ở đây
 
   // 1. Đồng bộ profile chính mình và tải danh sách user khác
   useEffect(() => {
