@@ -22,10 +22,18 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
-import { roles } from '../data/data'
 import { type User } from '../data/schema'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { usersColumns as columns } from './users-columns'
+
+// Danh sách vai trò học thuật đồng bộ với schema mới
+const academicRoleOptions = [
+  { label: 'Quản trị cấp cao', value: 'superadmin' },
+  { label: 'Quản trị viên', value: 'admin' },
+  { label: 'Quản lý học tập', value: 'manager' },
+  { label: 'Giảng viên / Giáo viên', value: 'teacher' },
+  { label: 'Học sinh / Sinh viên', value: 'student' },
+]
 
 type DataTableProps = {
   data: User[]
@@ -39,11 +47,7 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [sorting, setSorting] = useState<SortingState>([])
 
-  // Local state management for table (uncomment to use local-only state, not synced with URL)
-  // const [columnFilters, onColumnFiltersChange] = useState<ColumnFiltersState>([])
-  // const [pagination, onPaginationChange] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 })
-
-  // Synced with URL states (keys/defaults mirror users route search schema)
+  // Synced with URL states
   const {
     columnFilters,
     onColumnFiltersChange,
@@ -56,7 +60,6 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
     pagination: { defaultPage: 1, defaultPageSize: 10 },
     globalFilter: { enabled: false },
     columnFilters: [
-      // username per-column text filter
       { columnId: 'username', searchKey: 'username', type: 'string' },
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'role', searchKey: 'role', type: 'array' },
@@ -95,29 +98,29 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
   return (
     <div
       className={cn(
-        'max-sm:has-[div[role="toolbar"]]:mb-16', // Add margin bottom to the table on mobile when the toolbar is visible
+        'max-sm:has-[div[role="toolbar"]]:mb-16',
         'flex flex-1 flex-col gap-4'
       )}
     >
       <DataTableToolbar
         table={table}
-        searchPlaceholder='Filter users...'
+        searchPlaceholder='Tìm kiếm tên đăng nhập...'
         searchKey='username'
         filters={[
           {
             columnId: 'status',
-            title: 'Status',
+            title: 'Trạng thái',
             options: [
-              { label: 'Active', value: 'active' },
-              { label: 'Inactive', value: 'inactive' },
-              { label: 'Invited', value: 'invited' },
-              { label: 'Suspended', value: 'suspended' },
+              { label: 'Đang hoạt động', value: 'active' },
+              { label: 'Ngưng hoạt động', value: 'inactive' },
+              { label: 'Đã mời', value: 'invited' },
+              { label: 'Đã khóa', value: 'suspended' },
             ],
           },
           {
             columnId: 'role',
-            title: 'Role',
-            options: roles.map((role) => ({ ...role })),
+            title: 'Vai trò',
+            options: academicRoleOptions,
           },
         ]}
       />
@@ -180,7 +183,7 @@ export function UsersTable({ data, search, navigate }: DataTableProps) {
                   colSpan={columns.length}
                   className='h-24 text-center'
                 >
-                  No results.
+                  Không tìm thấy kết quả.
                 </TableCell>
               </TableRow>
             )}
