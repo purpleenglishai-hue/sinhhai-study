@@ -27,15 +27,14 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
   const [allUsers, setAllUsers] = useState<any[]>([])
   const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const currentUser = auth.currentUser
+  currentUser = auth.currentUser
 
-  // 1. Tự động đồng bộ profile của chính mình vào collection users và tải danh sách người khác
+  // 1. Đồng bộ profile chính mình và tải danh sách user khác
   useEffect(() => {
     if (!open || !currentUser) return
 
     const syncAndFetchUsers = async () => {
       try {
-        // Đồng bộ chính mình vào bảng users nếu chưa có
         const userRef = doc(db, 'users', currentUser.uid)
         const userSnap = await getDoc(userRef)
         if (!userSnap.exists()) {
@@ -48,21 +47,19 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
           })
         }
 
-        // Tải danh sách tất cả user khác
         const querySnapshot = await getDocs(collection(db, 'users'))
         const list = querySnapshot.docs
           .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
           .filter((u: any) => u.id !== currentUser.uid)
         setAllUsers(list)
       } catch (error) {
-        console.error("Lỗi đồng bộ hoặc tải users:", error)
+        console.error("Lỗi tải users:", error)
       }
     }
 
     syncAndFetchUsers()
   }, [open, currentUser])
 
-  // Lọc user theo từ khóa tìm kiếm
   const filteredUsers = allUsers.filter(user => 
     user.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -76,14 +73,14 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
     }
   }
 
-  // 2. Tạo hoặc mở phòng chat trên Firestore khi bấm nút Chat
+  // 2. Tạo phòng chat chuẩn xác với mảng participants chứa đúng UID
   const handleStartChat = async () => {
     if (!selectedUser || !currentUser) return
 
     try {
       const chatsRef = collection(db, 'conversations')
 
-      // Kiểm tra xem đã có phòng chat giữa 2 user này chưa
+      // Kiểm tra xem phòng chat đã tồn tại giữa 2 user chưa
       const q = query(chatsRef, where('participants', 'array-contains', currentUser.uid))
       const querySnapshot = await getDocs(q)
       
@@ -95,9 +92,9 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
         }
       })
 
-      // Nếu chưa có, tạo phòng chat mới
+      // Nếu chưa có, tạo mới hoàn toàn với mảng participants chuẩn
       if (!existingChatId) {
-        const newDocRef = await addDoc(chatsRef, {
+        await addDoc(chatsRef, {
           participants: [currentUser.uid, selectedUser.id],
           fullName: selectedUser.fullName || selectedUser.email,
           username: selectedUser.email?.split('@')[0] || 'user',
@@ -106,12 +103,10 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
           updatedAt: serverTimestamp(),
           messages: []
         })
-        existingChatId = newDocRef.id
       }
 
       onOpenChange(false)
       setSelectedUser(null)
-      // Tải lại trang để load phòng chat vào giao diện Inbox ngay lập tức
       window.location.reload()
     } catch (error) {
       console.error("Lỗi tạo phòng chat:", error)
