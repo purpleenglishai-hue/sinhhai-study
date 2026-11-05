@@ -51,10 +51,20 @@ export function Chats() {
   const [conversations, setConversations] = useState<ChatUser[]>([])
   const [realtimeMessages, setRealtimeMessages] = useState<Convo[]>([])
   const [inputMessage, setInputMessage] = useState('')
+  const [currentUser, setCurrentUser] = useState<any>(auth.currentUser)
 
-  const currentUser = auth.currentUser
+  // 1. Lắng nghe trạng thái đăng nhập an toàn (Khắc phục triệt để lỗi mở tab mới/ẩn danh bị trống)
+  useEffect(() => {
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user)
+      if (!user) {
+        setConversations([])
+      }
+    })
+    return () => unsubscribeAuth()
+  }, [])
 
-  // 1. Lắng nghe danh sách phòng chat chỉ hiển thị khi user hiện tại có trong mảng participants
+  // 2. Lắng nghe danh sách phòng chat theo thời gian thực dựa vào UID user hiện tại
   useEffect(() => {
     if (!currentUser) {
       setConversations([])
@@ -80,7 +90,7 @@ export function Chats() {
     return () => unsubscribe()
   }, [currentUser])
 
-  // 2. Lắng nghe tin nhắn (messages) của phòng chat đang chọn
+  // 3. Lắng nghe tin nhắn (messages) của phòng chat đang chọn
   useEffect(() => {
     if (!selectedUser?.id) return
 
@@ -104,7 +114,7 @@ export function Chats() {
     return () => unsubscribe()
   }, [selectedUser?.id, currentUser?.uid])
 
-  // 3. Hàm gửi tin nhắn thật lên Firestore
+  // 4. Hàm gửi tin nhắn thật lên Firestore
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputMessage.trim() || !selectedUser?.id || !currentUser) return
