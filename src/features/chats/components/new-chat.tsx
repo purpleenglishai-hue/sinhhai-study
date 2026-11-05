@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Check, X } from 'lucide-react'
-import { showSubmittedData } from '@/lib/show-submitted-data'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,6 +18,10 @@ import {
 } from '@/components/ui/dialog'
 import { type ChatUser } from '../data/chat-types'
 
+// Import Firebase
+import { db, auth } from '@/firebase'
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'
+
 type User = Omit<ChatUser, 'messages'>
 
 type NewChatProps = {
@@ -26,8 +29,10 @@ type NewChatProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
+
 export function NewChat({ users, onOpenChange, open }: NewChatProps) {
   const [selectedUsers, setSelectedUsers] = useState<User[]>([])
+  const currentUser = auth.currentUser
 
   const handleSelectUser = (user: User) => {
     if (!selectedUsers.find((u) => u.id === user.id)) {
@@ -43,9 +48,50 @@ export function NewChat({ users, onOpenChange, open }: NewChatProps) {
 
   const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen)
-    // Reset selected users when dialog closes
     if (!newOpen) {
       setSelectedUsers([])
+    }
+  }
+
+  // Xử lý tạo phòng chat thật trên Firestore khi bấm nút Chat
+  const handleStartChat = async () => {
+    if (selectedUsers.length === 0 || !currentUser) return
+
+    try {
+      const targetUser = selectedUsers[0] // Lấy user đầu tiên được chọn để chat 1-1
+      const chatsRef = collection(db, 'conversations')
+
+      // Kiểm tra xem đã có phòng chat giữa 2 user này chưa
+      const q = query(chatsRef, where('participants', 'array-contains', currentUser.uid))
+      const querySnapshot = await getDocs(q)
+      
+      let existingChatId: string | null = null
+      querySnapshot.forEach(docSnap => {
+        const data = docSnap.data()
+        if (data.participants && data.participants.includes(targetUser.id)) {
+          existingChatId = docSnap.id
+        }
+      })
+
+      // Nếu chưa có, tạo mới document trong collection conversations
+      if (!existingChatId) {
+        await addDoc(chatsRef, {
+          participants: [currentUser.uid, targetUser.id],
+          fullName: targetUser.fullName,
+          username: targetUser.username || 'user',
+          profile: targetUser.profile || 'https://randomuser.me/api/portraits/lego/1.jpg',
+          title: targetUser.title || 'Thành viên hệ thống',
+          updatedAt: serverTimestamp(),
+          messages: []
+        })
+      }
+
+      onOpenChange(false)
+      setSelectedUsers([])
+      // Tải lại trang để cập nhật danh sách phòng chat ở cột Inbox bên trái
+      window.location.reload()
+    } catch (error) {
+      console.error("Lỗi khi tạo phòng chat:", error)
     }
   }
 
@@ -115,7 +161,7 @@ export function NewChat({ users, onOpenChange, open }: NewChatProps) {
           </Command>
           <Button
             variant={'default'}
-            onClick={() => showSubmittedData(selectedUsers)}
+            onClick={handleStartChat}
             disabled={selectedUsers.length === 0}
           >
             Chat
