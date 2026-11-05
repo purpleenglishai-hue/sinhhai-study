@@ -27,7 +27,7 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
   const [allUsers, setAllUsers] = useState<any[]>([])
   const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const currentUser = auth.currentUser // Đã bổ sung từ khóa const ở đây
+  const currentUser = auth.currentUser
 
   // 1. Đồng bộ profile chính mình và tải danh sách user khác
   useEffect(() => {
@@ -73,27 +73,28 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
     }
   }
 
-  // 2. Tạo phòng chat chuẩn xác với mảng participants chứa đúng UID
+  // 2. Tạo hoặc tìm phòng chat một cách an toàn tuyệt đối
   const handleStartChat = async () => {
     if (!selectedUser || !currentUser) return
 
     try {
       const chatsRef = collection(db, 'conversations')
 
-      // Kiểm tra xem phòng chat đã tồn tại giữa 2 user chưa
+      // Truy vấn tất cả các phòng mà currentUser tham gia
       const q = query(chatsRef, where('participants', 'array-contains', currentUser.uid))
       const querySnapshot = await getDocs(q)
       
-      let existingChatId: string | null = null
+      let existingChatFound = false
       querySnapshot.forEach(docSnap => {
         const data = docSnap.data()
+        // Kiểm tra xem phòng này đã có mặt selectedUser chưa
         if (data.participants && data.participants.includes(selectedUser.id)) {
-          existingChatId = docSnap.id
+          existingChatFound = true
         }
       })
 
-      // Nếu chưa có, tạo mới hoàn toàn với mảng participants chuẩn
-      if (!existingChatId) {
+      // Nếu chưa có phòng giữa 2 người, tiến hành tạo mới
+      if (!existingChatFound) {
         await addDoc(chatsRef, {
           participants: [currentUser.uid, selectedUser.id],
           fullName: selectedUser.fullName || selectedUser.email,
@@ -107,7 +108,11 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
 
       onOpenChange(false)
       setSelectedUser(null)
-      window.location.reload()
+      
+      // Dùng window.location.reload() sau khi đảm bảo addDoc hoàn tất để load lại Inbox sạch sẽ
+      setTimeout(() => {
+        window.location.reload()
+      }, 300)
     } catch (error) {
       console.error("Lỗi tạo phòng chat:", error)
     }
