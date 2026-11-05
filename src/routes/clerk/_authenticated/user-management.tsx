@@ -8,6 +8,8 @@ import {
 } from '@tanstack/react-router'
 import { useAuth, UserButton } from '@clerk/react'
 import { ExternalLink, Loader2 } from 'lucide-react'
+import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { db } from '@/firebase'
 import { ClerkLogo } from '@/assets/clerk-logo'
 import { Button } from '@/components/ui/button'
 import { ConfigDrawer } from '@/components/config-drawer'
@@ -20,7 +22,7 @@ import { UsersDialogs } from '@/features/users/components/users-dialogs'
 import { UsersPrimaryButtons } from '@/features/users/components/users-primary-buttons'
 import { UsersProvider } from '@/features/users/components/users-provider'
 import { UsersTable } from '@/features/users/components/users-table'
-import { users } from '@/features/users/data/users'
+import { type User } from '@/features/users/data/schema'
 
 export const Route = createFileRoute('/clerk/_authenticated/user-management')({
   component: UserManagement,
@@ -32,6 +34,31 @@ function UserManagement() {
 
   const [opened, setOpened] = useState(true)
   const { isLoaded, isSignedIn } = useAuth()
+
+  const [userList, setUserList] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Lấy dữ liệu thật từ Firebase Firestore tương tự như trang users chính
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'))
+        const querySnapshot = await getDocs(q)
+        const list = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as User[]
+        setUserList(list)
+      } catch (error) {
+        console.error("Lỗi khi tải danh sách người dùng từ Firebase: ", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (isSignedIn) {
+      fetchUsers()
+    }
+  }, [isSignedIn])
 
   if (!isLoaded) {
     return (
@@ -48,7 +75,7 @@ function UserManagement() {
   return (
     <UsersProvider>
       <Header fixed>
-        <Search className='me-auto' />
+        <Search className='me-auto' placeholder='Tìm kiếm...' />
         <ThemeSwitch />
         <ConfigDrawer />
         <UserButton />
@@ -57,10 +84,10 @@ function UserManagement() {
       <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
         <div className='flex flex-wrap items-end justify-between gap-2'>
           <div>
-            <h2 className='text-2xl font-bold tracking-tight'>User List</h2>
+            <h2 className='text-2xl font-bold tracking-tight'>Quản lý Thành viên</h2>
             <div className='flex gap-1'>
               <p className='text-muted-foreground'>
-                Manage your users and their roles here.
+                Quản lý danh sách người dùng và phân quyền hệ thống.
               </p>
               <LearnMore
                 open={opened}
@@ -68,7 +95,7 @@ function UserManagement() {
                 contentProps={{ side: 'right' }}
               >
                 <p>
-                  This is the same as{' '}
+                  Trang này tương đương với{' '}
                   <Link
                     to='/users'
                     className='text-blue-500 underline decoration-dashed underline-offset-2'
@@ -78,8 +105,8 @@ function UserManagement() {
                 </p>
 
                 <p className='mt-4'>
-                  You can sign out or manage/delete your account via the User
-                  Profile menu in the top-right corner of the page.
+                  Bạn có thể đăng xuất hoặc quản lý/xóa tài khoản thông qua menu User
+                  Profile ở góc trên bên phải trang.
                   <ExternalLink className='inline-block size-4' />
                 </p>
               </LearnMore>
@@ -87,7 +114,14 @@ function UserManagement() {
           </div>
           <UsersPrimaryButtons />
         </div>
-        <UsersTable data={users} navigate={navigate} search={search} />
+
+        {loading ? (
+          <div className='flex justify-center items-center py-10 text-muted-foreground'>
+            Đang tải dữ liệu từ hệ thống...
+          </div>
+        ) : (
+          <UsersTable data={userList} navigate={navigate} search={search} />
+        )}
       </Main>
 
       <UsersDialogs />
@@ -124,13 +158,13 @@ function Unauthorized() {
     <div className='h-svh'>
       <div className='m-auto flex h-full w-full flex-col items-center justify-center gap-2'>
         <h1 className='text-[7rem] leading-tight font-bold'>401</h1>
-        <span className='font-medium'>Unauthorized Access</span>
+        <span className='font-medium'>Không có quyền truy cập</span>
         <p className='text-center text-muted-foreground'>
-          You must be authenticated via Clerk{' '}
+          Bạn phải xác thực thông qua Clerk{' '}
           <sup>
             <LearnMore open={opened} onOpenChange={setOpened}>
               <p>
-                This is the same as{' '}
+                Trang này tương đương với{' '}
                 <Link
                   to='/users'
                   className='text-blue-500 underline decoration-dashed underline-offset-2'
@@ -139,23 +173,23 @@ function Unauthorized() {
                 </Link>
                 .{' '}
               </p>
-              <p>You must first sign in using Clerk to access this route. </p>
+              <p>Bạn phải đăng nhập bằng Clerk trước để truy cập tuyến đường này. </p>
 
               <p className='mt-4'>
-                After signing in, you'll be able to sign out or delete your
-                account via the User Profile dropdown on this page.
+                Sau khi đăng nhập, bạn có thể đăng xuất hoặc quản lý tài khoản
+                thông qua menu thả xuống User Profile trên trang này.
               </p>
             </LearnMore>
           </sup>
           <br />
-          to access this resource.
+          để truy cập tài nguyên này.
         </p>
         <div className='mt-6 flex gap-4'>
           <Button variant='outline' onClick={() => history.go(-1)}>
-            Go Back
+            Quay lại
           </Button>
           <Button onClick={() => navigate({ to: '/clerk/sign-in' })}>
-            <ClerkLogo className='invert' /> Sign in
+            <ClerkLogo className='invert' /> Đăng nhập
           </Button>
         </div>
         <div className='mt-4 h-8 text-center'>
@@ -163,11 +197,11 @@ function Unauthorized() {
             <>
               <p>
                 {countdown > 0
-                  ? `Redirecting to Sign In page in ${countdown}s`
-                  : `Redirecting...`}
+                  ? `Đang chuyển hướng đến trang Đăng nhập sau ${countdown}s`
+                  : `Đang chuyển hướng...`}
               </p>
               <Button variant='link' onClick={() => setCancelled(true)}>
-                Cancel Redirect
+                Hủy chuyển hướng
               </Button>
             </>
           )}
