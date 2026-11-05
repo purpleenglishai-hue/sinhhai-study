@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Fragment } from 'react/jsx-runtime'
 import { format } from 'date-fns'
 import {
@@ -27,35 +27,117 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { NewChat } from './components/new-chat'
 import { type ChatUser, type Convo } from './data/chat-types'
-// Fake Data
-import { conversations } from './data/convo.json'
+
+// Import Firebase (đảm bảo đường dẫn trỏ đúng tới file firebase.ts của anh)
+import { db, auth } from '@/firebase'
+import { 
+  collection, 
+  query, 
+  orderBy, 
+  onSnapshot, 
+  addDoc, 
+  serverTimestamp, 
+  doc, 
+  updateDoc 
+} from 'firebase/firestore'
 
 export function Chats() {
   const [search, setSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null)
-  const [mobileSelectedUser, setMobileSelectedUser] = useState<ChatUser | null>(
-    null
-  )
-  const [createConversationDialogOpened, setCreateConversationDialog] =
-    useState(false)
+  const [mobileSelectedUser, setMobileSelectedUser] = useState<ChatUser | null>(null)
+  const [createConversationDialogOpened, setCreateConversationDialog] = useState(false)
+  
+  // State chứa danh sách conversations thật từ Firestore
+  const [conversations, setConversations] = useState<ChatUser[]>([])
+  // State chứa tin nhắn thật của phòng chat đang chọn
+  const [realtimeMessages, setRealtimeMessages] = useState<Convo[]>([])
+  // State ô nhập tin nhắn
+  const [inputMessage, setInputMessage] = useState('')
+
+  const currentUser = auth.currentUser
+
+  // 1. Lắng nghe danh sách phòng chat từ Firestore theo thời gian thực
+  useEffect(() => {
+    const q = query(collection(db, 'conversations'), orderBy('updatedAt', 'desc'))
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const convs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as ChatUser[]
+      setConversations(convs)
+    }, (error) => {
+      console.error("Lỗi tải danh sách chat:", error)
+    })
+    return () => unsubscribe()
+  }, [])
+
+  // 2. Lắng nghe tin nhắn (messages) của phòng chat đang chọn
+  useEffect(() => {
+    if (!selectedUser?.id) return
+
+    const q = query(
+      collection(db, 'conversations', selectedUser.id, 'messages'),
+      orderBy('timestamp', 'asc')
+    )
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          sender: data.sender,
+          message: data.message,
+          // Chuyển đổi Firestore Timestamp thành Date object an toàn cho date-fns
+          timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : new Date()
+        } as Convo
+      })
+      setRealtimeMessages(msgs)
+    })
+
+    return () => unsubscribe()
+  }, [selectedUser?.id])
+
+  // 3. Hàm gửi tin nhắn thật lên Firestore
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inputMessage.trim() || !selectedUser?.id || !currentUser) return
+
+    const textToSend = inputMessage
+    setInputMessage('') // Clear ô input trước cho mượt
+
+    try {
+      // Thêm tin nhắn vào sub-collection messages
+      await addDoc(collection(db, 'conversations', selectedUser.id, 'messages'), {
+        sender: 'You',
+        message: textToSend,
+        timestamp: serverTimestamp()
+      })
+
+      // Cập nhật lại thời gian phòng chat để đẩy lên đầu danh sách inbox
+      await updateDoc(doc(db, 'conversations', selectedUser.id), {
+        updatedAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error("Lỗi gửi tin nhắn:", error)
+    }
+  }
 
   // Filtered data based on the search query
   const filteredChatList = conversations.filter(({ fullName }) =>
-    fullName.toLowerCase().includes(search.trim().toLowerCase())
+    fullName?.toLowerCase().includes(search.trim().toLowerCase())
   )
 
-  const currentMessage = selectedUser?.messages.reduce(
+  // Nhóm tin nhắn theo ngày sử dụng danh sách tin nhắn thật từ Firestore
+  const currentMessage = realtimeMessages.reduce(
     (acc: Record<string, Convo[]>, obj) => {
-      const key = format(obj.timestamp, 'd MMM, yyyy')
-
-      // Create an array for the category if it doesn't exist
-      if (!acc[key]) {
-        acc[key] = []
+      try {
+        const key = format(new Date(obj.timestamp), 'd MMM, yyyy')
+        if (!acc[key]) {
+          acc[key] = []
+        }
+        acc[key].push(obj)
+      } catch (e) {
+        // Bỏ qua lỗi định dạng ngày tạm thời nếu chưa có timestamp
       }
-
-      // Push the current object to the array
-      acc[key].push(obj)
-
       return acc
     },
     {}
@@ -115,7 +197,7 @@ export function Chats() {
             <ScrollArea className='-mx-3 h-full overflow-scroll p-3'>
               {filteredChatList.map((chatUsr) => {
                 const { id, profile, username, messages, fullName } = chatUsr
-                const lastConvo = messages[0]
+                const lastConvo = messages && messages.length > 0 ? messages[messages.length - 1] : { sender: '', message: '' }
                 const lastMsg =
                   lastConvo.sender === 'You'
                     ? `You: ${lastConvo.message}`
@@ -146,7 +228,7 @@ export function Chats() {
                             {fullName}
                           </span>
                           <span className='col-start-2 row-span-2 row-start-2 line-clamp-2 text-ellipsis text-muted-foreground group-hover:text-accent-foreground/90'>
-                            {lastMsg}
+                            {lastMsg || 'Chưa có tin nhắn'}
                           </span>
                         </div>
                       </div>
@@ -251,7 +333,7 @@ export function Chats() {
                                       'text-end text-primary-foreground/85'
                                   )}
                                 >
-                                  {format(msg.timestamp, 'h:mm a')}
+                                  {msg.timestamp ? format(new Date(msg.timestamp), 'h:mm a') : ''}
                                 </span>
                               </div>
                             ))}
@@ -261,7 +343,9 @@ export function Chats() {
                     </div>
                   </div>
                 </div>
-                <form className='flex w-full flex-none gap-2'>
+
+                {/* Form nhập và gửi tin nhắn thật */}
+                <form onSubmit={handleSendMessage} className='flex w-full flex-none gap-2'>
                   <div className='flex flex-1 items-center gap-2 rounded-md border border-input bg-card px-2 py-1 focus-within:ring-1 focus-within:ring-ring focus-within:outline-hidden lg:gap-4'>
                     <div className='space-x-1'>
                       <Button
@@ -300,10 +384,13 @@ export function Chats() {
                       <input
                         type='text'
                         placeholder='Type your messages...'
+                        value={inputMessage}
+                        onChange={(e) => setInputMessage(e.target.value)}
                         className='h-8 w-full bg-inherit focus-visible:outline-hidden'
                       />
                     </label>
                     <Button
+                      type='submit'
                       variant='ghost'
                       size='icon'
                       className='hidden sm:inline-flex'
@@ -311,7 +398,7 @@ export function Chats() {
                       <Send size={20} />
                     </Button>
                   </div>
-                  <Button className='h-full sm:hidden'>
+                  <Button type='submit' className='h-full sm:hidden'>
                     <Send size={18} /> Send
                   </Button>
                 </form>
