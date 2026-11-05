@@ -2,10 +2,8 @@
 
 import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import { showSubmittedData } from '@/lib/show-submitted-data'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { doc, deleteDoc } from 'firebase/firestore'
+import { db } from '@/firebase'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { type User } from '../data/schema'
 
@@ -20,69 +18,48 @@ export function UsersDeleteDialog({
   onOpenChange,
   currentRow,
 }: UserDeleteDialogProps) {
-  const [value, setValue] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleDelete = () => {
-    if (value.trim() !== currentRow.username) return
-
-    onOpenChange(false)
-    showSubmittedData(currentRow, 'The following user has been deleted:')
+  const handleDelete = async () => {
+    if (!currentRow?.id) return
+    setLoading(true)
+    try {
+      // Xóa thật khỏi collection 'study_members' trên Firebase Firestore
+      await deleteDoc(doc(db, 'study_members', currentRow.id))
+      onOpenChange(false)
+      window.location.reload() // Tải lại trang để cập nhật lại bảng
+    } catch (error) {
+      console.error('Lỗi khi xóa thành viên: ', error)
+      alert('Không thể xóa thành viên, vui lòng thử lại!')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <ConfirmDialog
       open={open}
       onOpenChange={onOpenChange}
-      form='users-delete-form'
-      disabled={value.trim() !== currentRow.username}
+      handleConfirm={handleDelete}
+      disabled={loading}
       title={
         <span className='text-destructive'>
           <AlertTriangle
             className='me-1 inline-block stroke-destructive'
             size={18}
           />{' '}
-          Delete User
+          Xóa thành viên
         </span>
       }
       desc={
-        <form
-          id='users-delete-form'
-          onSubmit={(e) => {
-            e.preventDefault()
-            handleDelete()
-          }}
-          className='space-y-4'
-        >
-          <p className='mb-2'>
-            Are you sure you want to delete{' '}
-            <span className='font-bold'>{currentRow.username}</span>?
-            <br />
-            This action will permanently remove the user with the role of{' '}
-            <span className='font-bold'>
-              {currentRow.role.toUpperCase()}
-            </span>{' '}
-            from the system. This cannot be undone.
-          </p>
-
-          <Label className='my-2'>
-            Username:
-            <Input
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder='Enter username to confirm deletion.'
-              autoFocus
-            />
-          </Label>
-
-          <Alert variant='destructive'>
-            <AlertTitle>Warning!</AlertTitle>
-            <AlertDescription>
-              Please be careful, this operation can not be rolled back.
-            </AlertDescription>
-          </Alert>
-        </form>
+        <p className='mb-2'>
+          Bạn có chắc chắn muốn xóa thành viên{' '}
+          <span className='font-bold'>{currentRow.name || currentRow.username}</span> khỏi hệ thống không?
+          <br />
+          Hành động này không thể hoàn tác.
+        </p>
       }
-      confirmText='Delete'
+      confirmText={loading ? 'Đang xóa...' : 'Xóa'}
       destructive
     />
   )
