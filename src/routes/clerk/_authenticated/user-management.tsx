@@ -38,11 +38,11 @@ function UserManagement() {
   const [userList, setUserList] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Lấy dữ liệu thật từ Firebase Firestore tương tự như trang users chính
+  // Lấy dữ liệu độc lập từ collection 'study_members'
   useEffect(() => {
     async function fetchUsers() {
       try {
-        const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'))
+        const q = query(collection(db, 'study_members'), orderBy('createdAt', 'desc'))
         const querySnapshot = await getDocs(q)
         const list = querySnapshot.docs.map(doc => ({
           id: doc.id,
@@ -50,7 +50,7 @@ function UserManagement() {
         })) as User[]
         setUserList(list)
       } catch (error) {
-        console.error("Lỗi khi tải danh sách người dùng từ Firebase: ", error)
+        console.error("Lỗi khi tải danh sách thành viên từ Firebase: ", error)
       } finally {
         setLoading(false)
       }
@@ -87,7 +87,7 @@ function UserManagement() {
             <h2 className='text-2xl font-bold tracking-tight'>Quản lý Thành viên</h2>
             <div className='flex gap-1'>
               <p className='text-muted-foreground'>
-                Quản lý danh sách người dùng và phân quyền hệ thống.
+                Quản lý danh sách thành viên và phân quyền học tập.
               </p>
               <LearnMore
                 open={opened}
@@ -105,7 +105,7 @@ function UserManagement() {
                 </p>
 
                 <p className='mt-4'>
-                  Bạn có thể đăng xuất hoặc quản lý/xóa tài khoản thông qua menu User
+                  Bạn có thể đăng xuất hoặc quản lý tài khoản thông qua menu User
                   Profile ở góc trên bên phải trang.
                   <ExternalLink className='inline-block size-4' />
                 </p>
@@ -139,7 +139,6 @@ function Unauthorized() {
   const [cancelled, setCancelled] = useState(false)
   const [countdown, setCountdown] = useState(COUNTDOWN)
 
-  // Set and run the countdown conditionally
   useEffect(() => {
     if (cancelled || opened) return
     const interval = setInterval(() => {
@@ -148,7 +147,6 @@ function Unauthorized() {
     return () => clearInterval(interval)
   }, [cancelled, opened])
 
-  // Navigate to sign-in page when countdown hits 0
   useEffect(() => {
     if (countdown > 0) return
     navigate({ to: '/clerk/sign-in' })
@@ -174,11 +172,6 @@ function Unauthorized() {
                 .{' '}
               </p>
               <p>Bạn phải đăng nhập bằng Clerk trước để truy cập tuyến đường này. </p>
-
-              <p className='mt-4'>
-                Sau khi đăng nhập, bạn có thể đăng xuất hoặc quản lý tài khoản
-                thông qua menu thả xuống User Profile trên trang này.
-              </p>
             </LearnMore>
           </sup>
           <br />
