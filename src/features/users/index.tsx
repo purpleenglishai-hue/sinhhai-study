@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
 import { collection, getDocs, query, orderBy } from 'firebase/firestore'
-import { db } from '@/firebase' // Đường dẫn chuẩn tới firebase.ts ở gốc src
+import { db } from '@/firebase'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -23,11 +23,11 @@ export function Users() {
   const [userList, setUserList] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Lấy dữ liệu thật từ Firebase Firestore
+  // Lấy dữ liệu độc lập từ collection 'study_members' của không gian học tập
   useEffect(() => {
     async function fetchUsers() {
       try {
-        const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'))
+        const q = query(collection(db, 'study_members'), orderBy('createdAt', 'desc'))
         const querySnapshot = await getDocs(q)
         const list = querySnapshot.docs.map(doc => ({
           id: doc.id,
@@ -35,7 +35,7 @@ export function Users() {
         })) as User[]
         setUserList(list)
       } catch (error) {
-        console.error("Lỗi khi tải danh sách người dùng từ Firebase: ", error)
+        console.error("Lỗi khi tải danh sách thành viên từ Firebase: ", error)
       } finally {
         setLoading(false)
       }
@@ -57,7 +57,7 @@ export function Users() {
           <div>
             <h2 className='text-2xl font-bold tracking-tight'>Quản lý Thành viên</h2>
             <p className='text-muted-foreground'>
-              Quản lý danh sách người dùng, phân quyền và trạng thái hoạt động trong hệ thống học thuật.
+              Quản lý danh sách thành viên và phân quyền trong hệ thống học tập.
             </p>
           </div>
           <UsersPrimaryButtons />
