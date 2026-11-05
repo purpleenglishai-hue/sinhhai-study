@@ -1,64 +1,71 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Check, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { getDisplayNameInitials } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { type ChatUser } from '../data/chat-types'
 
 // Import Firebase
 import { db, auth } from '@/firebase'
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'
-
-type User = Omit<ChatUser, 'messages'>
+import { collection, getDocs, addDoc, serverTimestamp, query, where } from 'firebase/firestore'
 
 type NewChatProps = {
-  users: User[]
+  users?: any[]
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function NewChat({ users, onOpenChange, open }: NewChatProps) {
-  const [selectedUsers, setSelectedUsers] = useState<User[]>([])
+export function NewChat({ open, onOpenChange }: NewChatProps) {
+  const [allUsers, setAllUsers] = useState<any[]>([])
+  const [selectedUser, setSelectedUser] = useState<any | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
   const currentUser = auth.currentUser
 
-  const handleSelectUser = (user: User) => {
-    if (!selectedUsers.find((u) => u.id === user.id)) {
-      setSelectedUsers([...selectedUsers, user])
-    } else {
-      handleRemoveUser(user.id)
-    }
-  }
+  // 1. Tải danh sách tất cả users từ Firestore khi mở modal
+  useEffect(() => {
+    if (!open) return
 
-  const handleRemoveUser = (userId: string) => {
-    setSelectedUsers(selectedUsers.filter((user) => user.id !== userId))
-  }
+    const fetchUsers = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'users'))
+        const list = querySnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter((u: any) => u.id !== currentUser?.uid) // Loại bỏ chính mình
+        setAllUsers(list)
+      } catch (error) {
+        console.error("Lỗi tải danh sách users:", error)
+      }
+    }
+
+    fetchUsers()
+  }, [open, currentUser])
+
+  // Lọc user theo từ khóa tìm kiếm
+  const filteredUsers = allUsers.filter(user => 
+    user.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   const handleOpenChange = (newOpen: boolean) => {
     onOpenChange(newOpen)
     if (!newOpen) {
-      setSelectedUsers([])
+      setSelectedUser(null)
+      setSearchQuery('')
     }
   }
 
-  // Xử lý tạo phòng chat thật trên Firestore khi bấm nút Chat
+  // 2. Tạo hoặc mở phòng chat trên Firestore khi bấm nút Chat
   const handleStartChat = async () => {
-    if (selectedUsers.length === 0 || !currentUser) return
+    if (!selectedUser || !currentUser) return
 
     try {
-      const targetUser = selectedUsers[0] // Lấy user đầu tiên được chọn để chat 1-1
       const chatsRef = collection(db, 'conversations')
 
       // Kiểm tra xem đã có phòng chat giữa 2 user này chưa
@@ -68,30 +75,29 @@ export function NewChat({ users, onOpenChange, open }: NewChatProps) {
       let existingChatId: string | null = null
       querySnapshot.forEach(docSnap => {
         const data = docSnap.data()
-        if (data.participants && data.participants.includes(targetUser.id)) {
+        if (data.participants && data.participants.includes(selectedUser.id)) {
           existingChatId = docSnap.id
         }
       })
 
-      // Nếu chưa có, tạo mới document trong collection conversations
+      // Nếu chưa có, tạo phòng chat mới
       if (!existingChatId) {
         await addDoc(chatsRef, {
-          participants: [currentUser.uid, targetUser.id],
-          fullName: targetUser.fullName,
-          username: targetUser.username || 'user',
-          profile: targetUser.profile || 'https://randomuser.me/api/portraits/lego/1.jpg',
-          title: targetUser.title || 'Thành viên hệ thống',
+          participants: [currentUser.uid, selectedUser.id],
+          fullName: selectedUser.fullName || selectedUser.email,
+          username: selectedUser.email?.split('@')[0] || 'user',
+          profile: selectedUser.profile || 'https://randomuser.me/api/portraits/lego/1.jpg',
+          title: 'Thành viên hệ thống',
           updatedAt: serverTimestamp(),
           messages: []
         })
       }
 
       onOpenChange(false)
-      setSelectedUsers([])
-      // Tải lại trang để cập nhật danh sách phòng chat ở cột Inbox bên trái
-      window.location.reload()
+      setSelectedUser(null)
+      window.location.reload() // Tải lại để hiện phòng chat ở Inbox
     } catch (error) {
-      console.error("Lỗi khi tạo phòng chat:", error)
+      console.error("Lỗi tạo phòng chat:", error)
     }
   }
 
@@ -102,67 +108,65 @@ export function NewChat({ users, onOpenChange, open }: NewChatProps) {
           <DialogTitle>New message</DialogTitle>
         </DialogHeader>
         <div className='flex flex-col gap-4'>
-          <div className='flex flex-wrap items-baseline-last gap-2'>
-            <span className='min-h-6 text-sm text-muted-foreground'>To:</span>
-            {selectedUsers.map((user) => (
-              <Badge key={user.id} variant='default'>
-                {user.fullName}
-                <button
-                  className='ms-1 rounded-full ring-offset-background outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2'
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleRemoveUser(user.id)
-                    }
-                  }}
-                  onClick={() => handleRemoveUser(user.id)}
-                >
+          <div className='flex flex-wrap items-center gap-2'>
+            <span className='text-sm text-muted-foreground'>To:</span>
+            {selectedUser && (
+              <Badge variant='default' className='flex items-center gap-1'>
+                {selectedUser.fullName || selectedUser.email}
+                <button onClick={() => setSelectedUser(null)}>
                   <X className='h-3 w-3 text-muted-foreground hover:text-foreground' />
                 </button>
               </Badge>
-            ))}
+            )}
           </div>
-          <Command className='rounded-lg border'>
-            <CommandInput
-              placeholder='Search people...'
+
+          <div className='flex flex-col gap-2'>
+            <Input
+              placeholder='Search people by name or email...'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className='text-foreground'
             />
-            <CommandList>
-              <CommandEmpty>No people found.</CommandEmpty>
-              <CommandGroup>
-                {users.map((user) => (
-                  <CommandItem
+            <div className='max-h-60 overflow-y-auto space-y-1 rounded-lg border p-2'>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <div
                     key={user.id}
-                    onSelect={() => handleSelectUser(user)}
-                    className='flex items-center justify-between gap-2 hover:bg-accent hover:text-accent-foreground'
+                    onClick={() => setSelectedUser(user)}
+                    className={`flex items-center justify-between gap-2 p-2 rounded-md cursor-pointer transition-colors ${
+                      selectedUser?.id === user.id ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
+                    }`}
                   >
                     <div className='flex items-center gap-2'>
-                      <img
-                        src={user.profile || '/placeholder.svg'}
-                        alt={user.fullName}
-                        className='h-8 w-8 rounded-full'
-                      />
+                      <Avatar className='h-8 w-8'>
+                        <AvatarImage src={user.profile} />
+                        <AvatarFallback>{getDisplayNameInitials(user.fullName || user.email)}</AvatarFallback>
+                      </Avatar>
                       <div className='flex flex-col'>
                         <span className='text-sm font-medium'>
-                          {user.fullName}
+                          {user.fullName || user.email}
                         </span>
-                        <span className='text-xs text-accent-foreground/70'>
-                          {user.username}
+                        <span className='text-xs text-muted-foreground'>
+                          {user.email}
                         </span>
                       </div>
                     </div>
 
-                    {selectedUsers.find((u) => u.id === user.id) && (
+                    {selectedUser?.id === user.id && (
                       <Check className='h-4 w-4' />
                     )}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
+                  </div>
+                ))
+              ) : (
+                <p className='text-center text-sm text-muted-foreground py-4'>No people found.</p>
+              )}
+            </div>
+          </div>
+
           <Button
             variant={'default'}
             onClick={handleStartChat}
-            disabled={selectedUsers.length === 0}
+            disabled={!selectedUser}
           >
             Chat
           </Button>
