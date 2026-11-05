@@ -14,12 +14,13 @@ import {
 
 // Import Firebase
 import { db, auth } from '@/firebase'
-import { collection, getDocs, addDoc, serverTimestamp, query, where } from 'firebase/firestore'
+import { collection, getDocs, addDoc, serverTimestamp, query, where, doc, getDoc, setDoc } from 'firebase/firestore'
 
 type NewChatProps = {
   users?: any[]
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSelectNewChat?: (chatData: any) => void
 }
 
 export function NewChat({ open, onOpenChange }: NewChatProps) {
@@ -28,23 +29,37 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const currentUser = auth.currentUser
 
-  // 1. Tải danh sách tất cả users từ Firestore khi mở modal
+  // 1. Tự động đồng bộ profile của chính mình vào collection users và tải danh sách người khác
   useEffect(() => {
-    if (!open) return
+    if (!open || !currentUser) return
 
-    const fetchUsers = async () => {
+    const syncAndFetchUsers = async () => {
       try {
+        // Đồng bộ chính mình vào bảng users nếu chưa có
+        const userRef = doc(db, 'users', currentUser.uid)
+        const userSnap = await getDoc(userRef)
+        if (!userSnap.exists()) {
+          await setDoc(userRef, {
+            uid: currentUser.uid,
+            email: currentUser.email,
+            fullName: currentUser.displayName || currentUser.email?.split('@')[0],
+            profile: currentUser.photoURL || 'https://randomuser.me/api/portraits/lego/1.jpg',
+            createdAt: serverTimestamp()
+          })
+        }
+
+        // Tải danh sách tất cả user khác
         const querySnapshot = await getDocs(collection(db, 'users'))
         const list = querySnapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter((u: any) => u.id !== currentUser?.uid) // Loại bỏ chính mình
+          .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+          .filter((u: any) => u.id !== currentUser.uid)
         setAllUsers(list)
       } catch (error) {
-        console.error("Lỗi tải danh sách users:", error)
+        console.error("Lỗi đồng bộ hoặc tải users:", error)
       }
     }
 
-    fetchUsers()
+    syncAndFetchUsers()
   }, [open, currentUser])
 
   // Lọc user theo từ khóa tìm kiếm
@@ -82,7 +97,7 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
 
       // Nếu chưa có, tạo phòng chat mới
       if (!existingChatId) {
-        await addDoc(chatsRef, {
+        const newDocRef = await addDoc(chatsRef, {
           participants: [currentUser.uid, selectedUser.id],
           fullName: selectedUser.fullName || selectedUser.email,
           username: selectedUser.email?.split('@')[0] || 'user',
@@ -91,11 +106,13 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
           updatedAt: serverTimestamp(),
           messages: []
         })
+        existingChatId = newDocRef.id
       }
 
       onOpenChange(false)
       setSelectedUser(null)
-      window.location.reload() // Tải lại để hiện phòng chat ở Inbox
+      // Tải lại trang để load phòng chat vào giao diện Inbox ngay lập tức
+      window.location.reload()
     } catch (error) {
       console.error("Lỗi tạo phòng chat:", error)
     }
