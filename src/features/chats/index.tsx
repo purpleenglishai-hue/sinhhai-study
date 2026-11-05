@@ -28,11 +28,12 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { NewChat } from './components/new-chat'
 import { type ChatUser, type Convo } from './data/chat-types'
 
-// Import Firebase (đảm bảo đường dẫn trỏ đúng tới file firebase.ts của anh)
+// Import Firebase
 import { db, auth } from '@/firebase'
 import { 
   collection, 
   query, 
+  where,
   orderBy, 
   onSnapshot, 
   addDoc, 
@@ -47,18 +48,25 @@ export function Chats() {
   const [mobileSelectedUser, setMobileSelectedUser] = useState<ChatUser | null>(null)
   const [createConversationDialogOpened, setCreateConversationDialog] = useState(false)
   
-  // State chứa danh sách conversations thật từ Firestore
   const [conversations, setConversations] = useState<ChatUser[]>([])
-  // State chứa tin nhắn thật của phòng chat đang chọn
   const [realtimeMessages, setRealtimeMessages] = useState<Convo[]>([])
-  // State ô nhập tin nhắn
   const [inputMessage, setInputMessage] = useState('')
 
   const currentUser = auth.currentUser
 
-  // 1. Lắng nghe danh sách phòng chat từ Firestore theo thời gian thực
+  // 1. Lắng nghe danh sách phòng chat chỉ hiển thị khi user hiện tại có trong mảng participants
   useEffect(() => {
-    const q = query(collection(db, 'conversations'), orderBy('updatedAt', 'desc'))
+    if (!currentUser) {
+      setConversations([])
+      return
+    }
+
+    const q = query(
+      collection(db, 'conversations'), 
+      where('participants', 'array-contains', currentUser.uid),
+      orderBy('updatedAt', 'desc')
+    )
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const convs = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -68,8 +76,9 @@ export function Chats() {
     }, (error) => {
       console.error("Lỗi tải danh sách chat:", error)
     })
+
     return () => unsubscribe()
-  }, [])
+  }, [currentUser])
 
   // 2. Lắng nghe tin nhắn (messages) của phòng chat đang chọn
   useEffect(() => {
@@ -84,9 +93,8 @@ export function Chats() {
       const msgs = snapshot.docs.map(doc => {
         const data = doc.data()
         return {
-          sender: data.sender,
+          sender: data.senderId === currentUser?.uid ? 'You' : (data.sender || 'Other'),
           message: data.message,
-          // Chuyển đổi Firestore Timestamp thành Date object an toàn cho date-fns
           timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : new Date()
         } as Convo
       })
@@ -94,7 +102,7 @@ export function Chats() {
     })
 
     return () => unsubscribe()
-  }, [selectedUser?.id])
+  }, [selectedUser?.id, currentUser?.uid])
 
   // 3. Hàm gửi tin nhắn thật lên Firestore
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -102,17 +110,16 @@ export function Chats() {
     if (!inputMessage.trim() || !selectedUser?.id || !currentUser) return
 
     const textToSend = inputMessage
-    setInputMessage('') // Clear ô input trước cho mượt
+    setInputMessage('') 
 
     try {
-      // Thêm tin nhắn vào sub-collection messages
       await addDoc(collection(db, 'conversations', selectedUser.id, 'messages'), {
-        sender: 'You',
+        senderId: currentUser.uid,
+        sender: currentUser.displayName || currentUser.email || 'User',
         message: textToSend,
         timestamp: serverTimestamp()
       })
 
-      // Cập nhật lại thời gian phòng chat để đẩy lên đầu danh sách inbox
       await updateDoc(doc(db, 'conversations', selectedUser.id), {
         updatedAt: serverTimestamp()
       })
@@ -121,12 +128,10 @@ export function Chats() {
     }
   }
 
-  // Filtered data based on the search query
   const filteredChatList = conversations.filter(({ fullName }) =>
     fullName?.toLowerCase().includes(search.trim().toLowerCase())
   )
 
-  // Nhóm tin nhắn theo ngày sử dụng danh sách tin nhắn thật từ Firestore
   const currentMessage = realtimeMessages.reduce(
     (acc: Record<string, Convo[]>, obj) => {
       try {
@@ -136,7 +141,7 @@ export function Chats() {
         }
         acc[key].push(obj)
       } catch (e) {
-        // Bỏ qua lỗi định dạng ngày tạm thời nếu chưa có timestamp
+        // Bỏ qua lỗi định dạng ngày
       }
       return acc
     },
@@ -147,7 +152,6 @@ export function Chats() {
 
   return (
     <>
-      {/* ===== Top Heading ===== */}
       <Header>
         <Search className='me-auto' />
         <ThemeSwitch />
@@ -248,9 +252,7 @@ export function Chats() {
                 mobileSelectedUser && 'inset-s-0 flex'
               )}
             >
-              {/* Top Part */}
               <div className='mb-1 flex flex-none justify-between bg-card p-4 shadow-lg sm:rounded-t-md'>
-                {/* Left */}
                 <div className='flex gap-3'>
                   <Button
                     size='icon'
@@ -281,27 +283,14 @@ export function Chats() {
                   </div>
                 </div>
 
-                {/* Right */}
                 <div className='-me-1 flex items-center gap-1 lg:gap-2'>
-                  <Button
-                    size='icon'
-                    variant='ghost'
-                    className='hidden size-8 rounded-full sm:inline-flex lg:size-10'
-                  >
+                  <Button size='icon' variant='ghost' className='hidden size-8 rounded-full sm:inline-flex lg:size-10'>
                     <Video size={22} className='stroke-muted-foreground' />
                   </Button>
-                  <Button
-                    size='icon'
-                    variant='ghost'
-                    className='hidden size-8 rounded-full sm:inline-flex lg:size-10'
-                  >
+                  <Button size='icon' variant='ghost' className='hidden size-8 rounded-full sm:inline-flex lg:size-10'>
                     <Phone size={22} className='stroke-muted-foreground' />
                   </Button>
-                  <Button
-                    size='icon'
-                    variant='ghost'
-                    className='h-10 rounded-md sm:h-8 sm:w-4 lg:h-10 lg:w-6'
-                  >
+                  <Button size='icon' variant='ghost' className='h-10 rounded-md sm:h-8 sm:w-4 lg:h-10 lg:w-6'>
                     <MoreVertical className='stroke-muted-foreground sm:size-5' />
                   </Button>
                 </div>
@@ -344,39 +333,17 @@ export function Chats() {
                   </div>
                 </div>
 
-                {/* Form nhập và gửi tin nhắn thật */}
                 <form onSubmit={handleSendMessage} className='flex w-full flex-none gap-2'>
                   <div className='flex flex-1 items-center gap-2 rounded-md border border-input bg-card px-2 py-1 focus-within:ring-1 focus-within:ring-ring focus-within:outline-hidden lg:gap-4'>
                     <div className='space-x-1'>
-                      <Button
-                        size='icon'
-                        type='button'
-                        variant='ghost'
-                        className='h-8 rounded-md'
-                      >
+                      <Button size='icon' type='button' variant='ghost' className='h-8 rounded-md'>
                         <Plus size={20} className='stroke-muted-foreground' />
                       </Button>
-                      <Button
-                        size='icon'
-                        type='button'
-                        variant='ghost'
-                        className='hidden h-8 rounded-md lg:inline-flex'
-                      >
-                        <ImagePlus
-                          size={20}
-                          className='stroke-muted-foreground'
-                        />
+                      <Button size='icon' type='button' variant='ghost' className='hidden h-8 rounded-md lg:inline-flex'>
+                        <ImagePlus size={20} className='stroke-muted-foreground' />
                       </Button>
-                      <Button
-                        size='icon'
-                        type='button'
-                        variant='ghost'
-                        className='hidden h-8 rounded-md lg:inline-flex'
-                      >
-                        <Paperclip
-                          size={20}
-                          className='stroke-muted-foreground'
-                        />
+                      <Button size='icon' type='button' variant='ghost' className='hidden h-8 rounded-md lg:inline-flex'>
+                        <Paperclip size={20} className='stroke-muted-foreground' />
                       </Button>
                     </div>
                     <label className='flex-1'>
@@ -389,12 +356,7 @@ export function Chats() {
                         className='h-8 w-full bg-inherit focus-visible:outline-hidden'
                       />
                     </label>
-                    <Button
-                      type='submit'
-                      variant='ghost'
-                      size='icon'
-                      className='hidden sm:inline-flex'
-                    >
+                    <Button type='submit' variant='ghost' size='icon' className='hidden sm:inline-flex'>
                       <Send size={20} />
                     </Button>
                   </div>
