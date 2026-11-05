@@ -4,9 +4,25 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { LongText } from '@/components/long-text'
-import { callTypes, roles } from '../data/data'
 import { type User } from '../data/schema'
 import { DataTableRowActions } from './data-table-row-actions'
+
+// Bản dịch nhãn trạng thái tài khoản
+const statusLabels: Record<string, { label: string; className: string }> = {
+  active: { label: 'Đang hoạt động', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
+  inactive: { label: 'Ngưng hoạt động', className: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+  invited: { label: 'Đã mời', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+  suspended: { label: 'Đã khóa', className: 'bg-rose-500/10 text-rose-600 border-rose-500/20' },
+}
+
+// Bản dịch vai trò học thuật
+const roleLabels: Record<string, string> = {
+  superadmin: 'Quản trị cấp cao',
+  admin: 'Quản trị viên',
+  manager: 'Quản lý học tập',
+  teacher: 'Giảng viên / Giáo viên',
+  student: 'Học sinh / Sinh viên',
+}
 
 export const usersColumns: ColumnDef<User>[] = [
   {
@@ -18,7 +34,7 @@ export const usersColumns: ColumnDef<User>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label='Select all'
+        aria-label='Chọn tất cả'
         className='translate-y-0.5'
       />
     ),
@@ -29,7 +45,7 @@ export const usersColumns: ColumnDef<User>[] = [
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label='Select row'
+        aria-label='Chọn hàng'
         className='translate-y-0.5'
       />
     ),
@@ -39,10 +55,10 @@ export const usersColumns: ColumnDef<User>[] = [
   {
     accessorKey: 'username',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Username' />
+      <DataTableColumnHeader column={column} title='Tên đăng nhập' />
     ),
     cell: ({ row }) => (
-      <LongText className='max-w-36 ps-3'>{row.getValue('username')}</LongText>
+      <LongText className='max-w-36 ps-3 font-medium'>{row.getValue('username')}</LongText>
     ),
     meta: {
       className: cn(
@@ -53,14 +69,13 @@ export const usersColumns: ColumnDef<User>[] = [
     enableHiding: false,
   },
   {
-    id: 'fullName',
+    accessorKey: 'name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Name' />
+      <DataTableColumnHeader column={column} title='Họ và tên' />
     ),
     cell: ({ row }) => {
-      const { firstName, lastName } = row.original
-      const fullName = `${firstName} ${lastName}`
-      return <LongText className='max-w-36'>{fullName}</LongText>
+      const name = row.getValue('name') as string
+      return <LongText className='max-w-36'>{name || 'Chưa cập nhật'}</LongText>
     },
     meta: { className: 'w-36' },
   },
@@ -70,29 +85,29 @@ export const usersColumns: ColumnDef<User>[] = [
       <DataTableColumnHeader column={column} title='Email' />
     ),
     cell: ({ row }) => (
-      <div className='w-fit ps-2 text-nowrap'>{row.getValue('email')}</div>
+      <div className='w-fit ps-2 text-nowrap text-muted-foreground'>{row.getValue('email')}</div>
     ),
   },
   {
     accessorKey: 'phoneNumber',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Phone Number' />
+      <DataTableColumnHeader column={column} title='Số điện thoại' />
     ),
-    cell: ({ row }) => <div>{row.getValue('phoneNumber')}</div>,
+    cell: ({ row }) => <div>{row.getValue('phoneNumber') || '---'}</div>,
     enableSorting: false,
   },
   {
     accessorKey: 'status',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Status' />
+      <DataTableColumnHeader column={column} title='Trạng thái' />
     ),
     cell: ({ row }) => {
-      const { status } = row.original
-      const badgeColor = callTypes.get(status)
+      const status = row.getValue('status') as string
+      const statusInfo = statusLabels[status] || { label: status, className: '' }
       return (
         <div className='flex space-x-2'>
-          <Badge variant='outline' className={cn('capitalize', badgeColor)}>
-            {row.getValue('status')}
+          <Badge variant='outline' className={cn('capitalize font-normal', statusInfo.className)}>
+            {statusInfo.label}
           </Badge>
         </div>
       )
@@ -106,22 +121,15 @@ export const usersColumns: ColumnDef<User>[] = [
   {
     accessorKey: 'role',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Role' />
+      <DataTableColumnHeader column={column} title='Vai trò' />
     ),
     cell: ({ row }) => {
-      const { role } = row.original
-      const userType = roles.find(({ value }) => value === role)
-
-      if (!userType) {
-        return null
-      }
+      const role = row.getValue('role') as string
+      const roleName = roleLabels[role] || role
 
       return (
         <div className='flex items-center gap-x-2'>
-          {userType.icon && (
-            <userType.icon size={16} className='text-muted-foreground' />
-          )}
-          <span className='text-sm capitalize'>{row.getValue('role')}</span>
+          <span className='text-sm'>{roleName}</span>
         </div>
       )
     },
