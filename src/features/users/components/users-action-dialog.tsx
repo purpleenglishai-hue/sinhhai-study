@@ -1,9 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { showSubmittedData } from '@/lib/show-submitted-data'
+import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/firebase'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -110,6 +112,8 @@ export function UsersActionDialog({
   onOpenChange,
 }: UserActionDialogProps) {
   const isEdit = !!currentRow
+  const [loading, setLoading] = useState(false)
+
   const form = useForm<UserForm>({
     resolver: zodResolver(formSchema),
     defaultValues: isEdit
@@ -135,10 +139,44 @@ export function UsersActionDialog({
         },
   })
 
-  const onSubmit = (values: UserForm) => {
-    form.reset()
-    showSubmittedData(values)
-    onOpenChange(false)
+  // Hàm xử lý lưu thật xuống Firebase Firestore
+  const onSubmit = async (values: UserForm) => {
+    setLoading(true)
+    try {
+      if (isEdit && currentRow?.id) {
+        // Cập nhật thông tin user hiện tại
+        const userRef = doc(db, 'users', currentRow.id)
+        await updateDoc(userRef, {
+          name: values.fullName,
+          username: values.username,
+          email: values.email,
+          phoneNumber: values.phoneNumber,
+          role: values.role,
+          updatedAt: serverTimestamp(),
+        })
+      } else {
+        // Thêm mới user vào Firestore collection 'users'
+        await addDoc(collection(db, 'users'), {
+          name: values.fullName,
+          username: values.username,
+          email: values.email,
+          phoneNumber: values.phoneNumber,
+          role: values.role,
+          status: 'active', // Trạng thái mặc định khi thêm thủ công
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+      }
+
+      form.reset()
+      onOpenChange(false)
+      window.location.reload() // Tải lại trang để cập nhật danh sách bảng ngay lập tức
+    } catch (error) {
+      console.error('Lỗi khi lưu dữ liệu lên Firebase: ', error)
+      alert('Có lỗi xảy ra khi lưu dữ liệu. Vui lòng thử lại!')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const isPasswordTouched = !!form.formState.dirtyFields.password
@@ -203,7 +241,7 @@ export function UsersActionDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        placeholder='viddụ: nguyenvana'
+                        placeholder='ví dụ: nguyenvana'
                         className='col-span-4'
                         {...field}
                       />
@@ -318,8 +356,8 @@ export function UsersActionDialog({
           </Form>
         </div>
         <DialogFooter>
-          <Button type='submit' form='user-form'>
-            {isEdit ? 'Lưu thay đổi' : 'Tạo tài khoản'}
+          <Button type='submit' form='user-form' disabled={loading}>
+            {loading ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Tạo tài khoản'}
           </Button>
         </DialogFooter>
       </DialogContent>
