@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Check, X } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -131,12 +130,12 @@ export function NewChat({ open, onOpenChange, onSelectNewChat }: NewChatProps) {
           <div className='flex flex-wrap items-center gap-2'>
             <span className='text-sm text-muted-foreground'>To:</span>
             {selectedUser && (
-              <Badge variant={'default' as any} className='flex items-center gap-1'>
+              <span className='inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground'>
                 {selectedUser.fullName || selectedUser.email}
-                <button type="button" onClick={() => setSelectedUser(null)}>
+                <button type='button' onClick={() => setSelectedUser(null)}>
                   <X className='h-3 w-3 text-muted-foreground hover:text-foreground' />
                 </button>
-              </Badge>
+              </span>
             )}
           </div>
 
