@@ -401,8 +401,12 @@ export function Chats() {
         </section>
         <NewChat
           users={users}
-          onOpenChange={setCreateConversationDialog}
           open={createConversationDialogOpened}
+          onOpenChange={setCreateConversationDialog}
+          onSelectNewChat={(chatData) => {
+            setSelectedUser(chatData)
+            setMobileSelectedUser(chatData)
+          }}
         />
       </Main>
     </>
