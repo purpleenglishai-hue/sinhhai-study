@@ -54,7 +54,9 @@ export function Chats() {
   const [inputMessage, setInputMessage] = useState('')
   const [currentUser, setCurrentUser] = useState<any>(auth.currentUser)
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  // Tách riêng 2 ref cho Ảnh và Tài liệu để bấm nút nào ăn nút đó chính xác
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const docInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
@@ -79,10 +81,19 @@ export function Chats() {
     )
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const convs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as ChatUser[]
+      const convs = snapshot.docs.map(docSnap => {
+        const data = docSnap.data() as any
+        // Lấy tên hiển thị chuẩn (Ưu tiên fullName, nếu không có lấy phần trước @ của email)
+        const displayName = data.fullName && !data.fullName.includes('@') 
+          ? data.fullName 
+          : (data.fullName ? data.fullName.split('@')[0] : 'Thành viên hệ thống')
+
+        return {
+          id: docSnap.id,
+          ...data,
+          fullName: displayName
+        }
+      }) as ChatUser[]
       setConversations(convs)
     }, (error) => {
       console.error("Lỗi tải danh sách chat:", error)
@@ -100,8 +111,8 @@ export function Chats() {
     )
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => {
-        const data = doc.data()
+      const msgs = snapshot.docs.map(docSnap => {
+        const data = docSnap.data()
         return {
           sender: data.senderId === currentUser?.uid ? 'You' : (data.sender || 'Other'),
           message: data.message,
@@ -122,9 +133,10 @@ export function Chats() {
     setInputMessage('') 
 
     try {
+      const myName = currentUser.displayName || currentUser.email?.split('@')[0] || 'User'
       await addDoc(collection(db, 'conversations', selectedUser.id, 'messages'), {
         senderId: currentUser.uid,
-        sender: currentUser.displayName || currentUser.email || 'User',
+        sender: myName,
         message: textToSend,
         timestamp: serverTimestamp()
       })
@@ -137,23 +149,21 @@ export function Chats() {
     }
   }
 
-  // Xử lý upload file / ảnh thực tế qua Firebase Storage
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Xử lý upload ảnh thực tế
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !selectedUser?.id || !currentUser) return
 
     try {
-      const storageRef = ref(storage, `chat_files/${selectedUser.id}/${Date.now()}_${file.name}`)
+      const storageRef = ref(storage, `chat_images/${selectedUser.id}/${Date.now()}_${file.name}`)
       await uploadBytes(storageRef, file)
       const downloadURL = await getDownloadURL(storageRef)
 
-      const isImage = file.type.startsWith('image/')
-      const messageText = isImage ? `[Hình ảnh]: ${downloadURL}` : `[Tài liệu]: ${file.name} - ${downloadURL}`
-
+      const myName = currentUser.displayName || currentUser.email?.split('@')[0] || 'User'
       await addDoc(collection(db, 'conversations', selectedUser.id, 'messages'), {
         senderId: currentUser.uid,
-        sender: currentUser.displayName || currentUser.email || 'User',
-        message: messageText,
+        sender: myName,
+        message: `[Hình ảnh]: ${downloadURL}`,
         timestamp: serverTimestamp()
       })
 
@@ -161,7 +171,33 @@ export function Chats() {
         updatedAt: serverTimestamp()
       })
     } catch (error) {
-      console.error("Lỗi tải lên file:", error)
+      console.error("Lỗi tải lên hình ảnh:", error)
+    }
+  }
+
+  // Xử lý upload tài liệu thực tế
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !selectedUser?.id || !currentUser) return
+
+    try {
+      const storageRef = ref(storage, `chat_docs/${selectedUser.id}/${Date.now()}_${file.name}`)
+      await uploadBytes(storageRef, file)
+      const downloadURL = await getDownloadURL(storageRef)
+
+      const myName = currentUser.displayName || currentUser.email?.split('@')[0] || 'User'
+      await addDoc(collection(db, 'conversations', selectedUser.id, 'messages'), {
+        senderId: currentUser.uid,
+        sender: myName,
+        message: `[Tài liệu]: ${file.name} - ${downloadURL}`,
+        timestamp: serverTimestamp()
+      })
+
+      await updateDoc(doc(db, 'conversations', selectedUser.id), {
+        updatedAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error("Lỗi tải lên tài liệu:", error)
     }
   }
 
@@ -238,48 +274,52 @@ export function Chats() {
 
             {/* Danh sách user hiện ra ngay dưới bảng tìm kiếm */}
             <ScrollArea className='-mx-3 h-full overflow-scroll p-3'>
-              {filteredChatList.map((chatUsr) => {
-                const { id, profile, username, messages, fullName } = chatUsr
-                const lastConvo = messages && messages.length > 0 ? messages[messages.length - 1] : { sender: '', message: '' }
-                const lastMsg =
-                  lastConvo.sender === 'You'
-                    ? `You: ${lastConvo.message}`
-                    : lastConvo.message
-                return (
-                  <Fragment key={id}>
-                    <button
-                      type='button'
-                      className={cn(
-                        'group hover:bg-accent hover:text-accent-foreground',
-                        `flex w-full rounded-md px-2 py-2 text-start text-sm`,
-                        selectedUser?.id === id && 'sm:bg-muted'
-                      )}
-                      onClick={() => {
-                        setSelectedUser(chatUsr)
-                        setMobileSelectedUser(chatUsr)
-                      }}
-                    >
-                      <div className='flex gap-2 items-center'>
-                        <Avatar className='border border-purple-200'>
-                          <AvatarImage src={profile || currentUser?.photoURL} alt={username || fullName} />
-                          <AvatarFallback className='bg-purple-100 text-purple-700 font-semibold'>
-                            {getDisplayNameInitials(fullName) || 'SH'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <span className='col-start-2 row-span-2 font-medium block'>
-                            {fullName}
-                          </span>
-                          <span className='col-start-2 row-span-2 row-start-2 line-clamp-2 text-ellipsis text-muted-foreground group-hover:text-accent-foreground/90 text-xs'>
-                            {lastMsg || 'Chưa có tin nhắn'}
-                          </span>
+              {filteredChatList.length > 0 ? (
+                filteredChatList.map((chatUsr) => {
+                  const { id, profile, username, messages, fullName } = chatUsr
+                  const lastConvo = messages && messages.length > 0 ? messages[messages.length - 1] : { sender: '', message: '' }
+                  const lastMsg =
+                    lastConvo.sender === 'You'
+                      ? `You: ${lastConvo.message}`
+                      : lastConvo.message
+                  return (
+                    <Fragment key={id}>
+                      <button
+                        type='button'
+                        className={cn(
+                          'group hover:bg-accent hover:text-accent-foreground',
+                          `flex w-full rounded-md px-2 py-2 text-start text-sm`,
+                          selectedUser?.id === id && 'sm:bg-muted'
+                        )}
+                        onClick={() => {
+                          setSelectedUser(chatUsr)
+                          setMobileSelectedUser(chatUsr)
+                        }}
+                      >
+                        <div className='flex gap-2 items-center'>
+                          <Avatar className='border border-purple-200'>
+                            <AvatarImage src={profile || currentUser?.photoURL} alt={username || fullName} />
+                            <AvatarFallback className='bg-purple-100 text-purple-700 font-semibold'>
+                              {getDisplayNameInitials(fullName) || 'SH'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <span className='col-start-2 row-span-2 font-medium block'>
+                              {fullName}
+                            </span>
+                            <span className='col-start-2 row-span-2 row-start-2 line-clamp-2 text-ellipsis text-muted-foreground group-hover:text-accent-foreground/90 text-xs'>
+                              {lastMsg || 'Chưa có tin nhắn'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                    <Separator className='my-1' />
-                  </Fragment>
-                )
-              })}
+                      </button>
+                      <Separator className='my-1' />
+                    </Fragment>
+                  )
+                })
+              ) : (
+                <p className='text-center text-xs text-muted-foreground py-4'>Chưa có cuộc trò chuyện nào. Bấm nút viết mới ở góc trên để bắt đầu!</p>
+              )}
             </ScrollArea>
           </div>
 
@@ -322,7 +362,7 @@ export function Chats() {
                   </div>
                 </div>
 
-                {/* Các nút gọi video/thoại hoạt động thực */}
+                {/* Các nút gọi video/thoại và nút 3 chấm hoạt động thực */}
                 <div className='-me-1 flex items-center gap-1 lg:gap-2'>
                   <Button 
                     size='icon' 
@@ -340,7 +380,13 @@ export function Chats() {
                   >
                     <Phone size={22} className='stroke-muted-foreground' />
                   </Button>
-                  <Button size='icon' variant='ghost' className='h-10 rounded-md sm:h-8 sm:w-4 lg:h-10 lg:w-6'>
+                  <Button 
+                    size='icon' 
+                    variant='ghost' 
+                    className='h-10 rounded-md sm:h-8 sm:w-4 lg:h-10 lg:w-6'
+                    onClick={() => alert(`Thông tin cuộc trò chuyện với: ${selectedUser.fullName}`)}
+                    title="Tùy chọn khác"
+                  >
                     <MoreVertical className='stroke-muted-foreground sm:size-5' />
                   </Button>
                 </div>
@@ -396,28 +442,32 @@ export function Chats() {
 
                 {/* Form nhập tin nhắn & tích hợp nút bấm hoạt động thật */}
                 <form onSubmit={handleSendMessage} className='flex w-full flex-none gap-2'>
+                  {/* Hai input file riêng biệt cho Ảnh và Tài liệu */}
                   <input 
                     type="file" 
-                    ref={fileInputRef} 
+                    ref={imageInputRef} 
                     className="hidden" 
-                    onChange={handleFileUpload} 
+                    accept="image/*"
+                    onChange={handleImageUpload} 
+                  />
+                  <input 
+                    type="file" 
+                    ref={docInputRef} 
+                    className="hidden" 
+                    accept=".pdf,.doc,.docx,.txt,.zip"
+                    onChange={handleDocUpload} 
                   />
 
                   <div className='flex flex-1 items-center gap-2 rounded-md border border-input bg-card px-2 py-1 focus-within:ring-1 focus-within:ring-ring focus-within:outline-hidden lg:gap-4'>
                     <div className='space-x-1'>
-                      {/* Nút dấu cộng mở file */}
+                      {/* Nút dấu cộng mở chọn ảnh nhanh */}
                       <Button 
                         size='icon' 
                         type='button' 
                         variant='ghost' 
                         className='h-8 rounded-md'
-                        onClick={() => {
-                          if (fileInputRef.current) {
-                            fileInputRef.current.accept = "*"
-                            fileInputRef.current.click()
-                          }
-                        }}
-                        title="Đính kèm"
+                        onClick={() => imageInputRef.current?.click()}
+                        title="Đính kèm ảnh"
                       >
                         <Plus size={20} className='stroke-muted-foreground' />
                       </Button>
@@ -428,12 +478,7 @@ export function Chats() {
                         type='button' 
                         variant='ghost' 
                         className='hidden h-8 rounded-md lg:inline-flex'
-                        onClick={() => {
-                          if (fileInputRef.current) {
-                            fileInputRef.current.accept = "image/*"
-                            fileInputRef.current.click()
-                          }
-                        }}
+                        onClick={() => imageInputRef.current?.click()}
                         title="Gửi ảnh"
                       >
                         <ImagePlus size={20} className='stroke-muted-foreground' />
@@ -445,12 +490,7 @@ export function Chats() {
                         type='button' 
                         variant='ghost' 
                         className='hidden h-8 rounded-md lg:inline-flex'
-                        onClick={() => {
-                          if (fileInputRef.current) {
-                            fileInputRef.current.accept = ".pdf,.doc,.docx,.txt,.zip"
-                            fileInputRef.current.click()
-                          }
-                        }}
+                        onClick={() => docInputRef.current?.click()}
                         title="Gửi tài liệu"
                       >
                         <Paperclip size={20} className='stroke-muted-foreground' />
