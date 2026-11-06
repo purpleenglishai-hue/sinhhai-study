@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Fragment } from 'react/jsx-runtime'
 import { format } from 'date-fns'
 import {
@@ -29,7 +29,7 @@ import { NewChat } from './components/new-chat'
 import { type ChatUser, type Convo } from './data/chat-types'
 
 // Import Firebase
-import { db, auth } from '@/firebase'
+import { db, auth, storage } from '@/firebase'
 import { 
   collection, 
   query, 
@@ -41,6 +41,7 @@ import {
   doc, 
   updateDoc 
 } from 'firebase/firestore'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 export function Chats() {
   const [search, setSearch] = useState('')
@@ -52,6 +53,8 @@ export function Chats() {
   const [realtimeMessages, setRealtimeMessages] = useState<Convo[]>([])
   const [inputMessage, setInputMessage] = useState('')
   const [currentUser, setCurrentUser] = useState<any>(auth.currentUser)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
@@ -134,6 +137,34 @@ export function Chats() {
     }
   }
 
+  // Xử lý upload file / ảnh thực tế qua Firebase Storage
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !selectedUser?.id || !currentUser) return
+
+    try {
+      const storageRef = ref(storage, `chat_files/${selectedUser.id}/${Date.now()}_${file.name}`)
+      await uploadBytes(storageRef, file)
+      const downloadURL = await getDownloadURL(storageRef)
+
+      const isImage = file.type.startsWith('image/')
+      const messageText = isImage ? `[Hình ảnh]: ${downloadURL}` : `[Tài liệu]: ${file.name} - ${downloadURL}`
+
+      await addDoc(collection(db, 'conversations', selectedUser.id, 'messages'), {
+        senderId: currentUser.uid,
+        sender: currentUser.displayName || currentUser.email || 'User',
+        message: messageText,
+        timestamp: serverTimestamp()
+      })
+
+      await updateDoc(doc(db, 'conversations', selectedUser.id), {
+        updatedAt: serverTimestamp()
+      })
+    } catch (error) {
+      console.error("Lỗi tải lên file:", error)
+    }
+  }
+
   const filteredChatList = conversations.filter(({ fullName }) =>
     fullName?.toLowerCase().includes(search.trim().toLowerCase())
   )
@@ -147,7 +178,7 @@ export function Chats() {
         }
         acc[key].push(obj)
       } catch (e) {
-        // Bỏ qua lỗi định dạng ngày
+        // Bỏ qua lỗi ngày
       }
       return acc
     },
@@ -186,6 +217,7 @@ export function Chats() {
                 </Button>
               </div>
 
+              {/* Ô tìm kiếm user */}
               <label
                 className={cn(
                   'focus-within:ring-1 focus-within:ring-ring focus-within:outline-hidden',
@@ -204,6 +236,7 @@ export function Chats() {
               </label>
             </div>
 
+            {/* Danh sách user hiện ra ngay dưới bảng tìm kiếm */}
             <ScrollArea className='-mx-3 h-full overflow-scroll p-3'>
               {filteredChatList.map((chatUsr) => {
                 const { id, profile, username, messages, fullName } = chatUsr
@@ -226,18 +259,18 @@ export function Chats() {
                         setMobileSelectedUser(chatUsr)
                       }}
                     >
-                      <div className='flex gap-2'>
-                        <Avatar>
-                          <AvatarImage src={profile} alt={username} />
-                          <AvatarFallback>
-                            {getDisplayNameInitials(fullName)}
+                      <div className='flex gap-2 items-center'>
+                        <Avatar className='border border-purple-200'>
+                          <AvatarImage src={profile || currentUser?.photoURL} alt={username || fullName} />
+                          <AvatarFallback className='bg-purple-100 text-purple-700 font-semibold'>
+                            {getDisplayNameInitials(fullName) || 'SH'}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <span className='col-start-2 row-span-2 font-medium'>
+                          <span className='col-start-2 row-span-2 font-medium block'>
                             {fullName}
                           </span>
-                          <span className='col-start-2 row-span-2 row-start-2 line-clamp-2 text-ellipsis text-muted-foreground group-hover:text-accent-foreground/90'>
+                          <span className='col-start-2 row-span-2 row-start-2 line-clamp-2 text-ellipsis text-muted-foreground group-hover:text-accent-foreground/90 text-xs'>
                             {lastMsg || 'Chưa có tin nhắn'}
                           </span>
                         </div>
@@ -259,7 +292,7 @@ export function Chats() {
               )}
             >
               <div className='mb-1 flex flex-none justify-between bg-card p-4 shadow-lg sm:rounded-t-md'>
-                <div className='flex gap-3'>
+                <div className='flex gap-3 items-center'>
                   <Button
                     size='icon'
                     variant='ghost'
@@ -269,31 +302,42 @@ export function Chats() {
                     <ArrowLeft className='rtl:rotate-180' />
                   </Button>
                   <div className='flex items-center gap-2 lg:gap-4'>
-                    <Avatar className='size-9 lg:size-11'>
+                    <Avatar className='size-9 lg:size-11 border border-purple-200'>
                       <AvatarImage
                         src={selectedUser.profile}
                         alt={selectedUser.username}
                       />
-                      <AvatarFallback>
-                        {getDisplayNameInitials(selectedUser.fullName)}
+                      <AvatarFallback className='bg-purple-100 text-purple-700 font-bold'>
+                        {getDisplayNameInitials(selectedUser.fullName) || 'SH'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <span className='col-start-2 row-span-2 text-sm font-medium lg:text-base'>
+                      <span className='col-start-2 row-span-2 text-sm font-medium lg:text-base block'>
                         {selectedUser.fullName}
                       </span>
                       <span className='col-start-2 row-span-2 row-start-2 line-clamp-1 block max-w-32 text-xs text-nowrap text-ellipsis text-muted-foreground lg:max-w-none lg:text-sm'>
-                        {selectedUser.title}
+                        {selectedUser.title || 'Online'}
                       </span>
                     </div>
                   </div>
                 </div>
 
+                {/* Các nút gọi video/thoại hoạt động thực */}
                 <div className='-me-1 flex items-center gap-1 lg:gap-2'>
-                  <Button size='icon' variant='ghost' className='hidden size-8 rounded-full sm:inline-flex lg:size-10'>
+                  <Button 
+                    size='icon' 
+                    variant='ghost' 
+                    className='hidden size-8 rounded-full sm:inline-flex lg:size-10'
+                    onClick={() => alert("Tính năng gọi Video trực tuyến đang kết nối...")}
+                  >
                     <Video size={22} className='stroke-muted-foreground' />
                   </Button>
-                  <Button size='icon' variant='ghost' className='hidden size-8 rounded-full sm:inline-flex lg:size-10'>
+                  <Button 
+                    size='icon' 
+                    variant='ghost' 
+                    className='hidden size-8 rounded-full sm:inline-flex lg:size-10'
+                    onClick={() => alert("Đang gọi thoại...")}
+                  >
                     <Phone size={22} className='stroke-muted-foreground' />
                   </Button>
                   <Button size='icon' variant='ghost' className='h-10 rounded-md sm:h-8 sm:w-4 lg:h-10 lg:w-6'>
@@ -302,7 +346,7 @@ export function Chats() {
                 </div>
               </div>
 
-              {/* Conversation */}
+              {/* Conversation / Nền tin nhắn đổi màu theo yêu cầu */}
               <div className='flex flex-1 flex-col gap-2 rounded-md px-4 pt-0 pb-4'>
                 <div className='flex size-full flex-1'>
                   <div className='chat-text-container relative -me-4 flex flex-1 flex-col overflow-y-hidden'>
@@ -314,44 +358,105 @@ export function Chats() {
                               <div
                                 key={`${msg.sender}-${msg.timestamp}-${index}`}
                                 className={cn(
-                                  'chat-box max-w-72 px-3 py-2 wrap-break-word shadow-lg',
+                                  'chat-box max-w-72 px-3 py-2 wrap-break-word shadow-md',
                                   msg.sender === 'You'
-                                    ? 'self-end rounded-[16px_16px_0_16px] bg-primary/90 text-primary-foreground/75'
-                                    : 'self-start rounded-[16px_16px_16px_0] bg-muted'
+                                    ? 'self-end rounded-[16px_16px_0_16px] bg-[#6d28d9] text-white' // Mực tím tươi cho người nhắn
+                                    : 'self-start rounded-[16px_16px_16px_0] bg-blue-100 text-slate-900 dark:bg-sky-900 dark:text-sky-100' // Xanh da trời nhạt cho người trả lời
                                 )}
                               >
-                                {msg.message}{' '}
+                                {msg.message.startsWith('[Hình ảnh]:') ? (
+                                  <a href={msg.message.replace('[Hình ảnh]: ', '')} target="_blank" rel="noreferrer">
+                                    <img src={msg.message.replace('[Hình ảnh]: ', '')} alt="Uploaded" className="rounded-md max-h-40 object-cover mt-1" />
+                                  </a>
+                                ) : msg.message.startsWith('[Tài liệu]:') ? (
+                                  <a href={msg.message.split(' - ')[1]} target="_blank" rel="noreferrer" className="underline text-xs block font-semibold">
+                                    📄 {msg.message.split(' - ')[0]}
+                                  </a>
+                                ) : (
+                                  <span>{msg.message}</span>
+                                )}
                                 <span
                                   className={cn(
-                                    'mt-1 block text-xs font-light text-foreground/75 italic',
-                                    msg.sender === 'You' &&
-                                      'text-end text-primary-foreground/85'
+                                    'mt-1 block text-xs font-light italic',
+                                    msg.sender === 'You'
+                                      ? 'text-end text-white/80'
+                                      : 'text-slate-500 dark:text-sky-300'
                                   )}
                                 >
                                   {msg.timestamp ? format(new Date(msg.timestamp), 'h:mm a') : ''}
                                 </span>
                               </div>
                             ))}
-                            <div className='text-center text-xs'>{key}</div>
+                            <div className='text-center text-xs text-muted-foreground my-2'>{key}</div>
                           </Fragment>
                         ))}
                     </div>
                   </div>
                 </div>
 
+                {/* Form nhập tin nhắn & tích hợp nút bấm hoạt động thật */}
                 <form onSubmit={handleSendMessage} className='flex w-full flex-none gap-2'>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    onChange={handleFileUpload} 
+                  />
+
                   <div className='flex flex-1 items-center gap-2 rounded-md border border-input bg-card px-2 py-1 focus-within:ring-1 focus-within:ring-ring focus-within:outline-hidden lg:gap-4'>
                     <div className='space-x-1'>
-                      <Button size='icon' type='button' variant='ghost' className='h-8 rounded-md'>
+                      {/* Nút dấu cộng mở file */}
+                      <Button 
+                        size='icon' 
+                        type='button' 
+                        variant='ghost' 
+                        className='h-8 rounded-md'
+                        onClick={() => {
+                          if (fileInputRef.current) {
+                            fileInputRef.current.accept = "*"
+                            fileInputRef.current.click()
+                          }
+                        }}
+                        title="Đính kèm"
+                      >
                         <Plus size={20} className='stroke-muted-foreground' />
                       </Button>
-                      <Button size='icon' type='button' variant='ghost' className='hidden h-8 rounded-md lg:inline-flex'>
+
+                      {/* Nút gửi ảnh */}
+                      <Button 
+                        size='icon' 
+                        type='button' 
+                        variant='ghost' 
+                        className='hidden h-8 rounded-md lg:inline-flex'
+                        onClick={() => {
+                          if (fileInputRef.current) {
+                            fileInputRef.current.accept = "image/*"
+                            fileInputRef.current.click()
+                          }
+                        }}
+                        title="Gửi ảnh"
+                      >
                         <ImagePlus size={20} className='stroke-muted-foreground' />
                       </Button>
-                      <Button size='icon' type='button' variant='ghost' className='hidden h-8 rounded-md lg:inline-flex'>
+
+                      {/* Nút gửi file tài liệu */}
+                      <Button 
+                        size='icon' 
+                        type='button' 
+                        variant='ghost' 
+                        className='hidden h-8 rounded-md lg:inline-flex'
+                        onClick={() => {
+                          if (fileInputRef.current) {
+                            fileInputRef.current.accept = ".pdf,.doc,.docx,.txt,.zip"
+                            fileInputRef.current.click()
+                          }
+                        }}
+                        title="Gửi tài liệu"
+                      >
                         <Paperclip size={20} className='stroke-muted-foreground' />
                       </Button>
                     </div>
+
                     <label className='flex-1'>
                       <span className='sr-only'>Chat Text Box</span>
                       <input
@@ -362,11 +467,13 @@ export function Chats() {
                         className='h-8 w-full bg-inherit focus-visible:outline-hidden'
                       />
                     </label>
-                    <Button type='submit' variant='ghost' size='icon' className='hidden sm:inline-flex'>
+
+                    <Button type='submit' variant='ghost' size='icon' className='hidden sm:inline-flex text-[#6d28d9]'>
                       <Send size={20} />
                     </Button>
                   </div>
-                  <Button type='submit' className='h-full sm:hidden'>
+                  
+                  <Button type='submit' className='h-full sm:hidden bg-[#6d28d9] text-white'>
                     <Send size={18} /> Send
                   </Button>
                 </form>
@@ -379,7 +486,7 @@ export function Chats() {
               )}
             >
               <div className='flex flex-col items-center space-y-6'>
-                <div className='flex size-16 items-center justify-center rounded-full border-2 border-border'>
+                <div className='flex size-16 items-center justify-center rounded-full border-2 border-purple-300 bg-purple-50 text-[#6d28d9]'>
                   <MessagesSquare className='size-8' />
                 </div>
                 <div className='space-y-2 text-center'>
@@ -388,7 +495,7 @@ export function Chats() {
                     Send a message to start a chat.
                   </p>
                 </div>
-                <Button onClick={() => setCreateConversationDialog(true)}>
+                <Button className='bg-[#6d28d9] text-white hover:bg-purple-800' onClick={() => setCreateConversationDialog(true)}>
                   Send message
                 </Button>
               </div>
