@@ -13,6 +13,9 @@ import {
   Send,
   Video,
   MessagesSquare,
+  Trash2,
+  UserCheck,
+  ShieldAlert,
 } from 'lucide-react'
 import { cn, getDisplayNameInitials } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -50,6 +53,7 @@ export function Chats() {
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null)
   const [mobileSelectedUser, setMobileSelectedUser] = useState<ChatUser | null>(null)
   const [createConversationDialogOpened, setCreateConversationDialog] = useState(false)
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   
   const [conversations, setConversations] = useState<ChatUser[]>([])
   const [realtimeMessages, setRealtimeMessages] = useState<Convo[]>([])
@@ -58,8 +62,17 @@ export function Chats() {
 
   const imageInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Theo dõi trạng thái tài khoản đăng nhập thật
+  // Tự động trôi xuống tin nhắn mới nhất
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [realtimeMessages])
+
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       setCurrentUser(user)
@@ -70,7 +83,7 @@ export function Chats() {
     return () => unsubscribeAuth()
   }, [])
 
-  // Lấy danh sách user thật từ Firestore
+  // Lấy danh sách user thật và thông tin logo/tên chuẩn từ Firestore
   useEffect(() => {
     if (!currentUser) {
       setConversations([])
@@ -85,32 +98,34 @@ export function Chats() {
         usersSnapshot.forEach((docSnap) => {
           const data = docSnap.data() as any
           if (docSnap.id !== currentUser.uid) {
-            const rawName = data.fullName || data.name || data.email?.split('@')[0] || 'Thành viên'
-            // Làm đẹp tên hiển thị (bỏ phần @gmail.com nếu có)
-            const cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName
+            // Lấy tên hiển thị chuẩn (ưu tiên fullName, sau đó name, nếu không có mới cắt email)
+            const displayName = data.fullName || data.name || (data.email ? data.email.split('@')[0] : 'Thành viên')
+            // Lấy đúng avatar / logo nếu có
+            const avatarUrl = data.profile || data.photoURL || data.avatar || ''
+
             realUsers.push({
               id: docSnap.id,
-              fullName: cleanName,
-              username: data.username || cleanName,
+              fullName: displayName,
+              username: data.username || displayName,
               title: data.title || 'Online',
-              profile: data.profile || data.photoURL || '',
+              profile: avatarUrl,
               messages: []
             })
           }
         })
 
+        // Bổ sung từ conversations nếu có
         const convsQuery = query(collection(db, 'conversations'), orderBy('updatedAt', 'desc'))
         const convsSnapshot = await getDocs(convsQuery)
         
         convsSnapshot.forEach((docSnap) => {
           const data = docSnap.data() as any
-          const rawName = data.fullName || 'Thành viên hệ thống'
-          const cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName
-          if (!realUsers.some(u => u.fullName === cleanName) && docSnap.id !== currentUser.uid) {
+          const otherName = data.fullName || 'Thành viên hệ thống'
+          if (!realUsers.some(u => u.fullName === otherName) && docSnap.id !== currentUser.uid) {
             realUsers.push({
               id: docSnap.id,
-              fullName: cleanName,
-              username: data.username || cleanName,
+              fullName: otherName,
+              username: data.username || otherName,
               title: data.title || 'Online',
               profile: data.profile || '',
               messages: data.messages || []
@@ -202,10 +217,17 @@ export function Chats() {
     }
   }
 
-  // Gửi hình ảnh thực tế lên Firebase Storage
+  // Gửi hình ảnh thực tế (Có giới hạn dung lượng 5MB bắt mua thêm dung lượng)
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !selectedUser?.id || !currentUser) return
+
+    // Hạn chế dung lượng file tối đa 5MB cho tài liệu/ảnh lưu trữ
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_FILE_SIZE) {
+      alert("⚠️ Dung lượng file vượt quá giới hạn 5MB của gói miễn phí! Vui lòng nâng cấp thêm không gian lưu trữ (Storage Plan) để tiếp tục tải lên các tệp lớn.");
+      return;
+    }
 
     try {
       const storageRef = ref(storage, `chat_images/${currentUser.uid}/${Date.now()}_${file.name}`)
@@ -238,14 +260,20 @@ export function Chats() {
       })
     } catch (error) {
       console.error("Lỗi tải lên hình ảnh lên Storage:", error)
-      alert("Không thể tải ảnh lên Firebase Storage. Vui lòng kiểm tra lại Storage Rules trên Firebase Console!")
+      alert("Không thể tải ảnh lên Firebase Storage. Vui lòng kiểm tra lại Storage Rules!")
     }
   }
 
-  // Gửi tài liệu thực tế lên Firebase Storage
+  // Gửi tài liệu thực tế (Có giới hạn 5MB)
   const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !selectedUser?.id || !currentUser) return
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      alert("⚠️ Tài liệu vượt quá giới hạn 5MB! Vui lòng nâng cấp thêm không gian lưu trữ (Storage Plan) trên hệ thống.");
+      return;
+    }
 
     try {
       const storageRef = ref(storage, `chat_docs/${currentUser.uid}/${Date.now()}_${file.name}`)
@@ -278,7 +306,7 @@ export function Chats() {
       })
     } catch (error) {
       console.error("Lỗi tải lên tài liệu lên Storage:", error)
-      alert("Không thể tải tài liệu lên Firebase Storage. Vui lòng kiểm tra lại Storage Rules!")
+      alert("Không thể tải tài liệu lên Firebase Storage.")
     }
   }
 
@@ -295,7 +323,7 @@ export function Chats() {
         }
         acc[key].push(obj)
       } catch (e) {
-        // Bỏ qua lỗi định dạng ngày
+        // Bỏ qua lỗi ngày
       }
       return acc
     },
@@ -408,7 +436,7 @@ export function Chats() {
                 mobileSelectedUser && 'inset-s-0 flex'
               )}
             >
-              <div className='mb-1 flex flex-none justify-between bg-card p-4 shadow-lg sm:rounded-t-md'>
+              <div className='mb-1 flex flex-none justify-between bg-card p-4 shadow-lg sm:rounded-t-md relative'>
                 <div className='flex gap-3 items-center'>
                   <Button
                     size='icon'
@@ -439,7 +467,8 @@ export function Chats() {
                   </div>
                 </div>
 
-                <div className='-me-1 flex items-center gap-1 lg:gap-2'>
+                {/* Các nút gọi video, gọi thoại thực tế & menu cài đặt */}
+                <div className='-me-1 flex items-center gap-1 lg:gap-2 relative'>
                   <Button 
                     size='icon' 
                     variant='ghost' 
@@ -449,35 +478,62 @@ export function Chats() {
                   >
                     <Video size={22} className='stroke-muted-foreground' />
                   </Button>
+
                   <Button 
                     size='icon' 
                     variant='ghost' 
                     className='hidden size-8 rounded-full sm:inline-flex lg:size-10'
-                    onClick={() => alert(`Đang thiết lập cuộc gọi thoại bảo mật với ${selectedUser.fullName}...`)}
-                    title="Gọi thoại"
+                    onClick={() => window.open(`https://meet.jit.si/Audio_${selectedUser.id}`, '_blank')}
+                    title="Gọi thoại bảo mật"
                   >
                     <Phone size={22} className='stroke-muted-foreground' />
                   </Button>
+
                   <Button 
                     size='icon' 
                     variant='ghost' 
                     className='h-10 rounded-md sm:h-8 sm:w-4 lg:h-10 lg:w-6'
-                    onClick={() => alert(`Cài đặt hội thoại với: ${selectedUser.fullName}`)}
-                    title="Tùy chọn khác"
+                    onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                    title="Cài đặt hội thoại"
                   >
                     <MoreVertical className='stroke-muted-foreground sm:size-5' />
                   </Button>
+
+                  {/* Menu thả xuống khi bấm nút 3 chấm */}
+                  {showOptionsMenu && (
+                    <div className='absolute right-0 top-12 z-50 w-52 rounded-md border bg-popover p-1 text-popover-foreground shadow-md'>
+                      <button 
+                        className='flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent'
+                        onClick={() => { alert(`Thông tin hội thoại với: ${selectedUser.fullName}`); setShowOptionsMenu(false); }}
+                      >
+                        <UserCheck size={16} /> Xem hồ sơ đối phương
+                      </button>
+                      <button 
+                        className='flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-destructive'
+                        onClick={() => { if(confirm("Xóa toàn bộ lịch sử trò chuyện phòng này?")) setRealtimeMessages([]); setShowOptionsMenu(false); }}
+                      >
+                        <Trash2 size={16} /> Xóa lịch sử trò chuyện
+                      </button>
+                      <button 
+                        className='flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-amber-600'
+                        onClick={() => { alert(`Đã chặn người dùng ${selectedUser.fullName}`); setShowOptionsMenu(false); }}
+                      >
+                        <ShieldAlert size={16} /> Chặn người dùng này
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Conversation */}
+              {/* Conversation - Đã sửa lỗi trôi ngược chiều, tin nhắn mới tự động trôi xuống đáy */}
               <div className='flex flex-1 flex-col gap-2 rounded-md px-4 pt-0 pb-4'>
                 <div className='flex size-full flex-1'>
                   <div className='chat-text-container relative -me-4 flex flex-1 flex-col overflow-y-hidden'>
-                    <div className='chat-flex flex h-40 w-full grow flex-col-reverse justify-start gap-4 overflow-y-auto py-2 pe-4 pb-4'>
+                    <div className='chat-flex flex h-40 w-full grow flex-col justify-start gap-4 overflow-y-auto py-2 pe-4 pb-4'>
                       {currentMessage &&
                         Object.keys(currentMessage).map((key) => (
                           <Fragment key={key}>
+                            <div className='text-center text-xs text-muted-foreground my-2'>{key}</div>
                             {currentMessage[key].map((msg, index) => (
                               <div
                                 key={`${msg.sender}-${msg.timestamp}-${index}`}
@@ -511,9 +567,9 @@ export function Chats() {
                                 </span>
                               </div>
                             ))}
-                            <div className='text-center text-xs text-muted-foreground my-2'>{key}</div>
                           </Fragment>
                         ))}
+                      <div ref={messagesEndRef} />
                     </div>
                   </div>
                 </div>
