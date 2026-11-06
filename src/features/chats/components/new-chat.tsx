@@ -131,9 +131,9 @@ export function NewChat({ open, onOpenChange, onSelectNewChat }: NewChatProps) {
           <div className='flex flex-wrap items-center gap-2'>
             <span className='text-sm text-muted-foreground'>To:</span>
             {selectedUser && (
-              <Badge variant='default' className='flex items-center gap-1'>
+              <Badge variant={'default' as any} className='flex items-center gap-1'>
                 {selectedUser.fullName || selectedUser.email}
-                <button onClick={() => setSelectedUser(null)}>
+                <button type="button" onClick={() => setSelectedUser(null)}>
                   <X className='h-3 w-3 text-muted-foreground hover:text-foreground' />
                 </button>
               </Badge>
