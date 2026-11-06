@@ -23,13 +23,12 @@ type NewChatProps = {
   onSelectNewChat?: (chatData: any) => void
 }
 
-export function NewChat({ open, onOpenChange }: NewChatProps) {
+export function NewChat({ open, onOpenChange, onSelectNewChat }: NewChatProps) {
   const [allUsers, setAllUsers] = useState<any[]>([])
   const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const currentUser = auth.currentUser
 
-  // 1. Đồng bộ profile chính mình và tải danh sách user khác
   useEffect(() => {
     if (!open || !currentUser) return
 
@@ -73,29 +72,28 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
     }
   }
 
-  // 2. Tạo hoặc tìm phòng chat một cách an toàn tuyệt đối
+  // Xử lý tạo hoặc tìm phòng chat và truyền ngược về component cha
   const handleStartChat = async () => {
     if (!selectedUser || !currentUser) return
 
     try {
       const chatsRef = collection(db, 'conversations')
-
-      // Truy vấn tất cả các phòng mà currentUser tham gia
       const q = query(chatsRef, where('participants', 'array-contains', currentUser.uid))
       const querySnapshot = await getDocs(q)
       
-      let existingChatFound = false
+      let existingChatId: string | null = null
       querySnapshot.forEach(docSnap => {
         const data = docSnap.data()
-        // Kiểm tra xem phòng này đã có mặt selectedUser chưa
         if (data.participants && data.participants.includes(selectedUser.id)) {
-          existingChatFound = true
+          existingChatId = docSnap.id
         }
       })
 
-      // Nếu chưa có phòng giữa 2 người, tiến hành tạo mới
-      if (!existingChatFound) {
-        await addDoc(chatsRef, {
+      let chatId = existingChatId
+
+      // Nếu chưa có phòng, tạo mới
+      if (!chatId) {
+        const newDocRef = await addDoc(chatsRef, {
           participants: [currentUser.uid, selectedUser.id],
           fullName: selectedUser.fullName || selectedUser.email,
           username: selectedUser.email?.split('@')[0] || 'user',
@@ -104,15 +102,23 @@ export function NewChat({ open, onOpenChange }: NewChatProps) {
           updatedAt: serverTimestamp(),
           messages: []
         })
+        chatId = newDocRef.id
       }
 
+      // Đóng modal và chọn trực tiếp user đó làm active chat ở giao diện chính
       onOpenChange(false)
+      if (onSelectNewChat && chatId) {
+        onSelectNewChat({
+          id: chatId,
+          fullName: selectedUser.fullName || selectedUser.email,
+          username: selectedUser.email?.split('@')[0] || 'user',
+          profile: selectedUser.profile || 'https://randomuser.me/api/portraits/lego/1.jpg',
+          title: 'Thành viên hệ thống',
+          messages: []
+        })
+      }
+
       setSelectedUser(null)
-      
-      // Dùng window.location.reload() sau khi đảm bảo addDoc hoàn tất để load lại Inbox sạch sẽ
-      setTimeout(() => {
-        window.location.reload()
-      }, 300)
     } catch (error) {
       console.error("Lỗi tạo phòng chat:", error)
     }
