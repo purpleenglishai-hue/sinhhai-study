@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Check, X } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -79,15 +80,13 @@ export function NewChat({ open, onOpenChange, onSelectNewChat }: NewChatProps) {
       const q = query(chatsRef, where('participants', 'array-contains', currentUser.uid))
       const querySnapshot = await getDocs(q)
       
-      let existingChatId: string | null = null
+      let chatId: string = ''
       querySnapshot.forEach(docSnap => {
         const data = docSnap.data()
         if (data.participants && data.participants.includes(selectedUser.id)) {
-          existingChatId = docSnap.id
+          chatId = docSnap.id as string
         }
       })
-
-      let chatId = existingChatId
 
       if (!chatId) {
         const newDocRef = await addDoc(chatsRef, {
@@ -130,12 +129,12 @@ export function NewChat({ open, onOpenChange, onSelectNewChat }: NewChatProps) {
           <div className='flex flex-wrap items-center gap-2'>
             <span className='text-sm text-muted-foreground'>To:</span>
             {selectedUser && (
-              <span className='inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground'>
+              <Badge variant={'default' as any} className='flex items-center gap-1'>
                 {selectedUser.fullName || selectedUser.email}
-                <button type='button' onClick={() => setSelectedUser(null)}>
+                <button type="button" onClick={() => setSelectedUser(null)}>
                   <X className='h-3 w-3 text-muted-foreground hover:text-foreground' />
                 </button>
-              </span>
+              </Badge>
             )}
           </div>
 
