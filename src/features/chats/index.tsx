@@ -28,7 +28,7 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { NewChat } from './components/new-chat'
 import { type ChatUser, type Convo } from './data/chat-types'
 
-// Import Firebase
+// Import Firebase (Đã thêm đầy đủ updateDoc để fix triệt để lỗi build)
 import { db, auth, storage } from '@/firebase'
 import { 
   collection, 
@@ -39,7 +39,8 @@ import {
   serverTimestamp, 
   doc, 
   setDoc,
-  getDoc
+  getDoc,
+  updateDoc
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
@@ -75,7 +76,6 @@ export function Chats() {
     return () => unsubscribeAuth()
   }, [])
 
-  // Lấy danh sách cuộc trò chuyện từ Firestore và kết hợp danh sách mẫu
   useEffect(() => {
     if (!currentUser) {
       setConversations([])
@@ -100,7 +100,6 @@ export function Chats() {
         }
       }) as ChatUser[]
 
-      // Nếu chưa có đoạn chat nào trên Firebase, hiển thị danh sách mẫu ban đầu
       if (convs.length === 0) {
         setConversations(INITIAL_USERS)
       } else {
@@ -173,7 +172,6 @@ export function Chats() {
     }
   }
 
-  // Xử lý upload ảnh thực tế lên Firebase Storage và đẩy vào Firestore
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !selectedUser?.id || !currentUser) return
@@ -201,7 +199,6 @@ export function Chats() {
     }
   }
 
-  // Xử lý upload tài liệu thực tế lên Firebase Storage
   const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !selectedUser?.id || !currentUser) return
@@ -242,7 +239,7 @@ export function Chats() {
         }
         acc[key].push(obj)
       } catch (e) {
-        // Bỏ qua lỗi ngày
+        // Bỏ qua lỗi định dạng ngày
       }
       return acc
     },
@@ -281,7 +278,6 @@ export function Chats() {
                 </Button>
               </div>
 
-              {/* Ô tìm kiếm user */}
               <label
                 className={cn(
                   'focus-within:ring-1 focus-within:ring-ring focus-within:outline-hidden',
@@ -300,7 +296,6 @@ export function Chats() {
               </label>
             </div>
 
-            {/* Danh sách user hiển thị ngay dưới bảng tìm kiếm */}
             <ScrollArea className='-mx-3 h-full overflow-scroll p-3'>
               {filteredChatList.length > 0 ? (
                 filteredChatList.map((chatUsr) => {
@@ -311,7 +306,6 @@ export function Chats() {
                       ? `You: ${lastConvo.message}`
                       : (lastConvo.message || chatUsr.title || 'Chưa có tin nhắn')
                   
-                  // Hiển thị tín hiệu chấm xanh báo tin nhắn mới
                   const hasUnread = messages && messages.length > 0 && lastConvo.sender !== 'You'
 
                   return (
@@ -426,7 +420,7 @@ export function Chats() {
                 </div>
               </div>
 
-              {/* Conversation / Nền tin nhắn */}
+              {/* Conversation */}
               <div className='flex flex-1 flex-col gap-2 rounded-md px-4 pt-0 pb-4'>
                 <div className='flex size-full flex-1'>
                   <div className='chat-text-container relative -me-4 flex flex-1 flex-col overflow-y-hidden'>
@@ -440,8 +434,8 @@ export function Chats() {
                                 className={cn(
                                   'chat-box max-w-72 px-3 py-2 wrap-break-word shadow-md',
                                   msg.sender === 'You'
-                                    ? 'self-end rounded-[16px_16px_0_16px] bg-[#6d28d9] text-white' // Mực tím tươi
-                                    : 'self-start rounded-[16px_16px_16px_0] bg-blue-100 text-slate-900 dark:bg-sky-900 dark:text-sky-100' // Xanh da trời nhạt
+                                    ? 'self-end rounded-[16px_16px_0_16px] bg-[#6d28d9] text-white'
+                                    : 'self-start rounded-[16px_16px_16px_0] bg-blue-100 text-slate-900 dark:bg-sky-900 dark:text-sky-100'
                                 )}
                               >
                                 {msg.message.startsWith('[Hình ảnh]:') ? (
@@ -474,7 +468,6 @@ export function Chats() {
                   </div>
                 </div>
 
-                {/* Form nhập tin nhắn & nút đính kèm hoạt động */}
                 <form onSubmit={handleSendMessage} className='flex w-full flex-none gap-2'>
                   <input 
                     type="file" 
