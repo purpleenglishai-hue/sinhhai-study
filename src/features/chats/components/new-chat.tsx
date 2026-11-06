@@ -72,7 +72,6 @@ export function NewChat({ open, onOpenChange, onSelectNewChat }: NewChatProps) {
     }
   }
 
-  // Xử lý tạo hoặc tìm phòng chat và truyền ngược về component cha
   const handleStartChat = async () => {
     if (!selectedUser || !currentUser) return
 
@@ -91,7 +90,6 @@ export function NewChat({ open, onOpenChange, onSelectNewChat }: NewChatProps) {
 
       let chatId = existingChatId
 
-      // Nếu chưa có phòng, tạo mới
       if (!chatId) {
         const newDocRef = await addDoc(chatsRef, {
           participants: [currentUser.uid, selectedUser.id],
@@ -105,7 +103,6 @@ export function NewChat({ open, onOpenChange, onSelectNewChat }: NewChatProps) {
         chatId = newDocRef.id
       }
 
-      // Đóng modal và chọn trực tiếp user đó làm active chat ở giao diện chính
       onOpenChange(false)
       if (onSelectNewChat && chatId) {
         onSelectNewChat({
@@ -126,7 +123,7 @@ export function NewChat({ open, onOpenChange, onSelectNewChat }: NewChatProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className='sm:max-w-150'>
+      <DialogContent className='sm:max-w-xl'>
         <DialogHeader>
           <DialogTitle>New message</DialogTitle>
         </DialogHeader>
