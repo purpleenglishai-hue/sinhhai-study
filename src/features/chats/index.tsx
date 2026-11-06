@@ -70,14 +70,13 @@ export function Chats() {
     return () => unsubscribeAuth()
   }, [])
 
-  // Lấy danh sách user thật từ Firestore (bộ sưu tập 'users' hoặc 'conversations')
+  // Lấy danh sách user thật từ Firestore
   useEffect(() => {
     if (!currentUser) {
       setConversations([])
       return
     }
 
-    // Lấy danh sách thành viên thực tế từ cơ sở dữ liệu hệ thống
     const fetchRealUsers = async () => {
       try {
         const usersSnapshot = await getDocs(collection(db, 'users'))
@@ -85,12 +84,14 @@ export function Chats() {
 
         usersSnapshot.forEach((docSnap) => {
           const data = docSnap.data() as any
-          // Không lấy chính tài khoản đang đăng nhập
           if (docSnap.id !== currentUser.uid) {
+            const rawName = data.fullName || data.name || data.email?.split('@')[0] || 'Thành viên'
+            // Làm đẹp tên hiển thị (bỏ phần @gmail.com nếu có)
+            const cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName
             realUsers.push({
               id: docSnap.id,
-              fullName: data.fullName || data.name || data.email?.split('@')[0] || 'Thành viên',
-              username: data.username || data.email?.split('@')[0] || 'user',
+              fullName: cleanName,
+              username: data.username || cleanName,
               title: data.title || 'Online',
               profile: data.profile || data.photoURL || '',
               messages: []
@@ -98,18 +99,18 @@ export function Chats() {
           }
         })
 
-        // Nếu bảng users chưa có nhiều, lấy thêm từ conversations thực tế
         const convsQuery = query(collection(db, 'conversations'), orderBy('updatedAt', 'desc'))
         const convsSnapshot = await getDocs(convsQuery)
         
         convsSnapshot.forEach((docSnap) => {
           const data = docSnap.data() as any
-          const otherName = data.fullName || 'Thành viên hệ thống'
-          if (!realUsers.some(u => u.fullName === otherName) && docSnap.id !== currentUser.uid) {
+          const rawName = data.fullName || 'Thành viên hệ thống'
+          const cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName
+          if (!realUsers.some(u => u.fullName === cleanName) && docSnap.id !== currentUser.uid) {
             realUsers.push({
               id: docSnap.id,
-              fullName: otherName,
-              username: data.username || 'user',
+              fullName: cleanName,
+              username: data.username || cleanName,
               title: data.title || 'Online',
               profile: data.profile || '',
               messages: data.messages || []
@@ -117,7 +118,6 @@ export function Chats() {
           }
         })
 
-        // Nếu vẫn trống, hiển thị user thực tế của anh (Purple English) làm mẫu đối ứng
         if (realUsers.length === 0) {
           realUsers.push({
             id: 'purple_english_real',
@@ -138,11 +138,10 @@ export function Chats() {
     fetchRealUsers()
   }, [currentUser])
 
-  // Lấy tin nhắn real-time của cuộc trò chuyện đang chọn
+  // Lấy tin nhắn real-time
   useEffect(() => {
     if (!selectedUser?.id || !currentUser) return
 
-    // Tạo ID phòng chat chung duy nhất giữa 2 user để đồng bộ tin nhắn 2 chiều chính xác
     const chatId = [currentUser.uid, selectedUser.id].sort().join('_')
 
     const q = query(
@@ -174,7 +173,7 @@ export function Chats() {
     setInputMessage('') 
 
     try {
-      const myName = currentUser.displayName || 'Sinh Trần'
+      const myName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Sinh Trần'
       const chatId = [currentUser.uid, selectedUser.id].sort().join('_')
       const convoRef = doc(db, 'conversations', chatId)
       
@@ -209,11 +208,11 @@ export function Chats() {
     if (!file || !selectedUser?.id || !currentUser) return
 
     try {
-      const storageRef = ref(storage, `chat_images/${selectedUser.id}/${Date.now()}_${file.name}`)
+      const storageRef = ref(storage, `chat_images/${currentUser.uid}/${Date.now()}_${file.name}`)
       await uploadBytes(storageRef, file)
       const downloadURL = await getDownloadURL(storageRef)
 
-      const myName = currentUser.displayName || 'Sinh Trần'
+      const myName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Sinh Trần'
       const chatId = [currentUser.uid, selectedUser.id].sort().join('_')
       const convoRef = doc(db, 'conversations', chatId)
 
@@ -238,7 +237,8 @@ export function Chats() {
         updatedAt: serverTimestamp()
       })
     } catch (error) {
-      console.error("Lỗi tải lên hình ảnh:", error)
+      console.error("Lỗi tải lên hình ảnh lên Storage:", error)
+      alert("Không thể tải ảnh lên Firebase Storage. Vui lòng kiểm tra lại Storage Rules trên Firebase Console!")
     }
   }
 
@@ -248,11 +248,11 @@ export function Chats() {
     if (!file || !selectedUser?.id || !currentUser) return
 
     try {
-      const storageRef = ref(storage, `chat_docs/${selectedUser.id}/${Date.now()}_${file.name}`)
+      const storageRef = ref(storage, `chat_docs/${currentUser.uid}/${Date.now()}_${file.name}`)
       await uploadBytes(storageRef, file)
       const downloadURL = await getDownloadURL(storageRef)
 
-      const myName = currentUser.displayName || 'Sinh Trần'
+      const myName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Sinh Trần'
       const chatId = [currentUser.uid, selectedUser.id].sort().join('_')
       const convoRef = doc(db, 'conversations', chatId)
 
@@ -277,7 +277,8 @@ export function Chats() {
         updatedAt: serverTimestamp()
       })
     } catch (error) {
-      console.error("Lỗi tải lên tài liệu:", error)
+      console.error("Lỗi tải lên tài liệu lên Storage:", error)
+      alert("Không thể tải tài liệu lên Firebase Storage. Vui lòng kiểm tra lại Storage Rules!")
     }
   }
 
@@ -438,7 +439,6 @@ export function Chats() {
                   </div>
                 </div>
 
-                {/* Các nút gọi điện & Video call hoạt động thật */}
                 <div className='-me-1 flex items-center gap-1 lg:gap-2'>
                   <Button 
                     size='icon' 
