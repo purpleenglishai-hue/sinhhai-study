@@ -7,6 +7,7 @@ import {
   Edit,
   Paperclip,
   Phone,
+  PhoneOff,
   ImagePlus,
   Plus,
   Search as SearchIcon,
@@ -55,6 +56,10 @@ export function Chats() {
   const [createConversationDialogOpened, setCreateConversationDialog] = useState(false)
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   
+  // Trạng thái điều khiển khung gọi video trực tiếp ngay trong chat
+  const [inCall, setInCall] = useState(false)
+  const [callRoomId, setCallRoomId] = useState('')
+
   const [conversations, setConversations] = useState<ChatUser[]>([])
   const [realtimeMessages, setRealtimeMessages] = useState<Convo[]>([])
   const [inputMessage, setInputMessage] = useState('')
@@ -101,7 +106,6 @@ export function Chats() {
             let avatarUrl = data.profile || data.photoURL || data.avatar || ''
             let userTitle = 'Hoạt động gần đây'
 
-            // Cấu hình chuẩn xác cho tài khoản chính thức englishai purple
             if (data.email === 'purpleenglishai@gmail.com') {
               displayName = 'englishai purple'
               userTitle = 'Hệ thống hỗ trợ chính thức'
@@ -202,11 +206,11 @@ export function Chats() {
     }
   }
 
-  // Gói lưu trữ chat & tài liệu: Cho phép dung lượng rộng rãi mặc định (1GB trong gói 499k), cảnh báo khi file > 50MB
+  // Gói lưu trữ chat & tài liệu (Dung lượng rộng rãi mặc định trong gói 499k, cảnh báo khi file > 50MB)
   const handleFileUpload = async (file: File, type: 'image' | 'doc') => {
     if (!selectedUser?.id || !currentUser) return
 
-    const MAX_DEFAULT_FILE_SIZE = 50 * 1024 * 1024; // 50MB cho phép trong gói tiêu chuẩn 499k
+    const MAX_DEFAULT_FILE_SIZE = 50 * 1024 * 1024; // 50MB
     if (file.size > MAX_DEFAULT_FILE_SIZE) {
       alert("⚠️ Tài liệu vượt quá giới hạn 50MB của gói tiêu chuẩn! Vui lòng nâng cấp các gói lưu trữ nâng cao (5GB/10GB/50GB) để tích hợp AI chuyên sâu.");
       return;
@@ -282,13 +286,16 @@ export function Chats() {
       </Header>
 
       <Main fixed>
-        <section className='flex h-full gap-6'>
-          {/* Left Side */}
-          <div className='flex w-full flex-col gap-2 sm:w-56 lg:w-72 2xl:w-80'>
-            <div className='sticky top-0 z-10 -mx-4 bg-background px-4 pb-3 shadow-md sm:static sm:z-auto sm:mx-0 sm:p-0 sm:shadow-none'>
+        <section className='flex h-full gap-4 md:gap-6 overflow-hidden'>
+          {/* Left Side: Danh sách Inbox (Responsive co giãn linh hoạt) */}
+          <div className={cn(
+            'flex flex-col gap-2 w-full sm:w-64 lg:w-72 2xl:w-80 flex-shrink-0',
+            mobileSelectedUser && 'hidden sm:flex'
+          )}>
+            <div className='sticky top-0 z-10 bg-background pb-3 shadow-md sm:shadow-none'>
               <div className='flex items-center justify-between py-2'>
-                <div className='flex gap-2'>
-                  <h1 className='text-2xl font-bold'>Inbox</h1>
+                <div className='flex gap-2 items-center'>
+                  <h1 className='text-xl md:text-2xl font-bold'>Inbox</h1>
                   <MessagesSquare size={20} />
                 </div>
 
@@ -298,7 +305,7 @@ export function Chats() {
                   onClick={() => setCreateConversationDialog(true)}
                   className='rounded-lg'
                 >
-                  <Edit size={24} className='stroke-muted-foreground' />
+                  <Edit size={22} className='stroke-muted-foreground' />
                 </Button>
               </div>
 
@@ -320,11 +327,10 @@ export function Chats() {
               </label>
             </div>
 
-            <ScrollArea className='-mx-3 h-full overflow-scroll p-3'>
+            <ScrollArea className='h-[calc(100vh-200px)] pr-2'>
               {filteredChatList.length > 0 ? (
                 filteredChatList.map((chatUsr) => {
                   const { id, profile, username, fullName } = chatUsr
-                  const hasUnread = false // Trạng thái thông báo đẩy chấm đỏ tin nhắn mới
 
                   return (
                     <Fragment key={id}>
@@ -333,23 +339,21 @@ export function Chats() {
                         className={cn(
                           'group hover:bg-accent hover:text-accent-foreground relative',
                           `flex w-full rounded-md px-2 py-2 text-start text-sm`,
-                          selectedUser?.id === id && 'sm:bg-muted'
+                          selectedUser?.id === id && 'bg-muted'
                         )}
                         onClick={() => {
                           setSelectedUser(chatUsr)
                           setMobileSelectedUser(chatUsr)
+                          setInCall(false) // Tắt chế độ gọi khi chuyển hội thoại
                         }}
                       >
                         <div className='flex gap-2 items-center w-full relative'>
-                          <Avatar className='border border-purple-200 relative'>
+                          <Avatar className='border border-purple-200 relative size-10 flex-shrink-0'>
                             <AvatarImage src={profile} alt={username || fullName} />
                             <AvatarFallback className='bg-purple-100 text-purple-700 font-semibold'>
                               {getDisplayNameInitials(fullName) || 'SH'}
                             </AvatarFallback>
                           </Avatar>
-                          {hasUnread && (
-                            <span className='absolute left-7 top-0 size-3 rounded-full bg-purple-600 ring-2 ring-background' />
-                          )}
                           <div className='flex-1 overflow-hidden'>
                             <div className='flex justify-between items-center'>
                               <span className='font-medium block truncate'>{fullName}</span>
@@ -370,26 +374,30 @@ export function Chats() {
             </ScrollArea>
           </div>
 
-          {/* Right Side */}
+          {/* Right Side: Khu vực Chat / Giao diện Gọi Video nhúng trực tiếp */}
           {selectedUser ? (
             <div
               className={cn(
-                'absolute inset-0 start-full z-50 hidden w-full flex-1 flex-col border bg-background shadow-xs sm:static sm:z-auto sm:flex sm:rounded-md',
-                mobileSelectedUser && 'inset-s-0 flex'
+                'flex flex-1 flex-col border bg-background shadow-xs rounded-md overflow-hidden w-full',
+                !mobileSelectedUser && 'hidden sm:flex'
               )}
             >
-              <div className='mb-1 flex flex-none justify-between bg-card p-4 shadow-lg sm:rounded-t-md relative'>
-                <div className='flex gap-3 items-center'>
+              {/* Header khung chat */}
+              <div className='flex flex-none justify-between items-center bg-card p-3 md:p-4 shadow-sm relative'>
+                <div className='flex gap-2 md:gap-3 items-center overflow-hidden'>
                   <Button
                     size='icon'
                     variant='ghost'
-                    className='-ms-2 h-full sm:hidden'
-                    onClick={() => setMobileSelectedUser(null)}
+                    className='h-9 w-9 sm:hidden flex-shrink-0'
+                    onClick={() => {
+                      setMobileSelectedUser(null)
+                      setInCall(false)
+                    }}
                   >
                     <ArrowLeft className='rtl:rotate-180' />
                   </Button>
-                  <div className='flex items-center gap-2 lg:gap-4'>
-                    <Avatar className='size-9 lg:size-11 border border-purple-200'>
+                  <div className='flex items-center gap-2 lg:gap-3 overflow-hidden'>
+                    <Avatar className='size-9 lg:size-10 border border-purple-200 flex-shrink-0'>
                       <AvatarImage
                         src={selectedUser.profile}
                         alt={selectedUser.username}
@@ -398,216 +406,244 @@ export function Chats() {
                         {getDisplayNameInitials(selectedUser.fullName) || 'SH'}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <span className='col-start-2 row-span-2 text-sm font-medium lg:text-base block'>
+                    <div className='overflow-hidden'>
+                      <span className='text-sm font-medium lg:text-base block truncate'>
                         {selectedUser.fullName}
                       </span>
-                      <span className='col-start-2 row-span-2 row-start-2 line-clamp-1 block max-w-32 text-xs text-nowrap text-ellipsis text-muted-foreground lg:max-w-none lg:text-sm'>
-                        {selectedUser.title || 'Hệ thống trực tuyến'}
+                      <span className='line-clamp-1 text-xs text-muted-foreground'>
+                        {inCall ? '🟢 Đang trong cuộc gọi trực tiếp' : (selectedUser.title || 'Hệ thống trực tuyến')}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className='-me-1 flex items-center gap-1 lg:gap-2 relative'>
-                  <Button 
-                    size='icon' 
-                    variant='ghost' 
-                    className='hidden size-8 rounded-full sm:inline-flex lg:size-10'
-                    onClick={() => window.open(`https://meet.jit.si/SinhHAI_${selectedUser.id}`, '_blank')}
-                    title="Gọi Video trực tuyến"
-                  >
-                    <Video size={22} className='stroke-muted-foreground' />
-                  </Button>
+                {/* Các nút tính năng (Video Call, Phone, Menu) */}
+                <div className='flex items-center gap-1 flex-shrink-0 relative'>
+                  {!inCall ? (
+                    <>
+                      <Button 
+                        size='icon' 
+                        variant='ghost' 
+                        className='size-9 rounded-full text-purple-700 hover:bg-purple-100'
+                        onClick={() => {
+                          const roomId = `SinhHAI_${currentUser.uid}_${selectedUser.id}`
+                          setCallRoomId(roomId)
+                          setInCall(true)
+                        }}
+                        title="Gọi Video trực tuyến ngay trong ứng dụng"
+                      >
+                        <Video size={20} />
+                      </Button>
+
+                      <Button 
+                        size='icon' 
+                        variant='ghost' 
+                        className='size-9 rounded-full text-purple-700 hover:bg-purple-100'
+                        onClick={() => {
+                          const roomId = `SinhHAI_Audio_${currentUser.uid}_${selectedUser.id}`
+                          setCallRoomId(roomId)
+                          setInCall(true)
+                        }}
+                        title="Gọi thoại bảo mật"
+                      >
+                        <Phone size={20} />
+                      </Button>
+                    </>
+                  ) : (
+                    <Button 
+                      size='sm' 
+                      variant='destructive' 
+                      className='gap-1 rounded-full px-3 text-xs'
+                      onClick={() => setInCall(false)}
+                      title="Kết thúc cuộc gọi"
+                    >
+                      <PhoneOff size={16} /> Kết thúc
+                    </Button>
+                  )}
 
                   <Button 
                     size='icon' 
                     variant='ghost' 
-                    className='hidden size-8 rounded-full sm:inline-flex lg:size-10'
-                    onClick={() => window.open(`https://meet.jit.si/Audio_${selectedUser.id}`, '_blank')}
-                    title="Gọi thoại bảo mật"
-                  >
-                    <Phone size={22} className='stroke-muted-foreground' />
-                  </Button>
-
-                  <Button 
-                    size='icon' 
-                    variant='ghost' 
-                    className='h-10 rounded-md sm:h-8 sm:w-4 lg:h-10 lg:w-6'
+                    className='size-9 rounded-md'
                     onClick={() => setShowOptionsMenu(!showOptionsMenu)}
                     title="Cài đặt hội thoại"
                   >
-                    <MoreVertical className='stroke-muted-foreground sm:size-5' />
+                    <MoreVertical className='stroke-muted-foreground size-5' />
                   </Button>
 
+                  {/* Menu thả xuống */}
                   {showOptionsMenu && (
-                    <div className='absolute right-0 top-12 z-50 w-52 rounded-md border bg-popover p-1 text-popover-foreground shadow-md'>
+                    <div className='absolute right-0 top-12 z-50 w-48 rounded-md border bg-popover p-1 text-popover-foreground shadow-md'>
                       <button 
                         className='flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent'
                         onClick={() => { alert(`Thông tin hội thoại với: ${selectedUser.fullName}`); setShowOptionsMenu(false); }}
                       >
-                        <UserCheck size={16} /> Xem hồ sơ đối phương
+                        <UserCheck size={16} /> Xem hồ sơ
                       </button>
                       <button 
                         className='flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-destructive'
                         onClick={() => { if(confirm("Xóa lịch sử trò chuyện?")) setRealtimeMessages([]); setShowOptionsMenu(false); }}
                       >
-                        <Trash2 size={16} /> Xóa lịch sử trò chuyện
+                        <Trash2 size={16} /> Xóa lịch sử chat
                       </button>
                       <button 
                         className='flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-amber-600'
                         onClick={() => { alert(`Đã chặn người dùng ${selectedUser.fullName}`); setShowOptionsMenu(false); }}
                       >
-                        <ShieldAlert size={16} /> Chặn người dùng này
+                        <ShieldAlert size={16} /> Chặn người dùng
                       </button>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Conversation */}
-              <div className='flex flex-1 flex-col gap-2 rounded-md px-4 pt-0 pb-4'>
-                <div className='flex size-full flex-1'>
-                  <div className='chat-text-container relative -me-4 flex flex-1 flex-col overflow-y-hidden'>
-                    <div className='chat-flex flex h-40 w-full grow flex-col justify-start gap-4 overflow-y-auto py-2 pe-4 pb-4'>
-                      {currentMessage &&
-                        Object.keys(currentMessage).map((key) => (
-                          <Fragment key={key}>
-                            <div className='text-center text-xs text-muted-foreground my-2'>{key}</div>
-                            {currentMessage[key].map((msg, index) => (
-                              <div
-                                key={`${msg.sender}-${msg.timestamp}-${index}`}
-                                className={cn(
-                                  'chat-box max-w-72 px-3 py-2 wrap-break-word shadow-md',
-                                  msg.sender === 'You'
-                                    ? 'self-end rounded-[16px_16px_0_16px] bg-[#6d28d9] text-white'
-                                    : 'self-start rounded-[16px_16px_16px_0] bg-blue-100 text-slate-900 dark:bg-sky-900 dark:text-sky-100'
-                                )}
-                              >
-                                {msg.message.startsWith('[Hình ảnh]:') ? (
-                                  <a href={msg.message.replace('[Hình ảnh]: ', '')} target="_blank" rel="noreferrer">
-                                    <img src={msg.message.replace('[Hình ảnh]: ', '')} alt="Uploaded" className="rounded-md max-h-40 object-cover mt-1" />
-                                  </a>
-                                ) : msg.message.startsWith('[Tài liệu]:') ? (
-                                  <a href={msg.message.split(' - ')[1]} target="_blank" rel="noreferrer" className="underline text-xs block font-semibold">
-                                    📄 {msg.message.split(' - ')[0]}
-                                  </a>
-                                ) : (
-                                  <span>{msg.message}</span>
-                                )}
-                                <span
-                                  className={cn(
-                                    'mt-1 block text-xs font-light italic',
-                                    msg.sender === 'You'
-                                      ? 'text-end text-white/80'
-                                      : 'text-slate-500 dark:text-sky-300'
-                                  )}
-                                >
-                                  {msg.timestamp ? format(new Date(msg.timestamp), 'h:mm a') : ''}
-                                </span>
-                              </div>
-                            ))}
-                          </Fragment>
-                        ))}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  </div>
+              {/* THAY ĐỔI QUAN TRỌNG: Nếu đang gọi video (inCall = true) thì nhúng iframe Jitsi trực tiếp, ngược lại hiển thị khung chat */}
+              {inCall ? (
+                <div className='flex-1 w-full bg-slate-950 relative flex flex-col'>
+                  <iframe
+                    src={`https://meet.jit.si/${callRoomId}#config.startWithAudioMuted=false&config.startWithVideoMuted=false&interfaceConfig.TOOLBAR_BUTTONS=['microphone','camera','closedcaptions','desktop','fullscreen','focusscreen','hangup','chat','settings']`}
+                    allow="camera; microphone; fullscreen; display-capture; autoplay"
+                    className="w-full flex-1 border-0"
+                    title="SinhHAI Video Call"
+                  />
                 </div>
-
-                <form onSubmit={handleSendMessage} className='flex w-full flex-none gap-2'>
-                  <input 
-                    type="file" 
-                    ref={imageInputRef} 
-                    className="hidden" 
-                    accept="image/*"
-                    onChange={(e) => { const f = e.target.files?.[0]; if(f) handleFileUpload(f, 'image'); }} 
-                  />
-                  <input 
-                    type="file" 
-                    ref={docInputRef} 
-                    className="hidden" 
-                    accept=".pdf,.doc,.docx,.txt,.zip"
-                    onChange={(e) => { const f = e.target.files?.[0]; if(f) handleFileUpload(f, 'doc'); }} 
-                  />
-
-                  <div className='flex flex-1 items-center gap-2 rounded-md border border-input bg-card px-2 py-1 focus-within:ring-1 focus-within:ring-ring focus-within:outline-hidden lg:gap-4'>
-                    <div className='space-x-1'>
-                      <Button 
-                        size='icon' 
-                        type='button' 
-                        variant='ghost' 
-                        className='h-8 rounded-md'
-                        onClick={() => imageInputRef.current?.click()}
-                        title="Đính kèm ảnh"
-                      >
-                        <Plus size={20} className='stroke-muted-foreground' />
-                      </Button>
-
-                      <Button 
-                        size='icon' 
-                        type='button' 
-                        variant='ghost' 
-                        className='hidden h-8 rounded-md lg:inline-flex'
-                        onClick={() => imageInputRef.current?.click()}
-                        title="Gửi ảnh"
-                      >
-                        <ImagePlus size={20} className='stroke-muted-foreground' />
-                      </Button>
-
-                      <Button 
-                        size='icon' 
-                        type='button' 
-                        variant='ghost' 
-                        className='hidden h-8 rounded-md lg:inline-flex'
-                        onClick={() => docInputRef.current?.click()}
-                        title="Gửi tài liệu"
-                      >
-                        <Paperclip size={20} className='stroke-muted-foreground' />
-                      </Button>
+              ) : (
+                <>
+                  {/* Danh sách tin nhắn */}
+                  <div className='flex flex-1 flex-col gap-2 px-4 py-2 overflow-hidden bg-slate-50/50 dark:bg-slate-900/20'>
+                    <div className='flex size-full flex-1'>
+                      <div className='chat-text-container relative flex flex-1 flex-col overflow-y-hidden'>
+                        <div className='chat-flex flex h-full w-full grow flex-col justify-start gap-3 overflow-y-auto py-2 pr-2'>
+                          {currentMessage &&
+                            Object.keys(currentMessage).map((key) => (
+                              <Fragment key={key}>
+                                <div className='text-center text-xs text-muted-foreground my-2'>{key}</div>
+                                {currentMessage[key].map((msg, index) => (
+                                  <div
+                                    key={`${msg.sender}-${msg.timestamp}-${index}`}
+                                    className={cn(
+                                      'chat-box max-w-[85%] md:max-w-md px-3 py-2 rounded-lg shadow-sm text-sm break-words',
+                                      msg.sender === 'You'
+                                        ? 'self-end rounded-br-none bg-[#6d28d9] text-white'
+                                        : 'self-start rounded-bl-none bg-purple-100 text-slate-900 dark:bg-purple-950 dark:text-purple-100'
+                                    )}
+                                  >
+                                    {msg.message.startsWith('[Hình ảnh]:') ? (
+                                      <a href={msg.message.replace('[Hình ảnh]: ', '')} target="_blank" rel="noreferrer">
+                                        <img src={msg.message.replace('[Hình ảnh]: ', '')} alt="Uploaded" className="rounded-md max-h-48 object-cover mt-1" />
+                                      </a>
+                                    ) : msg.message.startsWith('[Tài liệu]:') ? (
+                                      <a href={msg.message.split(' - ')[1]} target="_blank" rel="noreferrer" className="underline text-xs block font-semibold">
+                                        📄 {msg.message.split(' - ')[0]}
+                                      </a>
+                                    ) : (
+                                      <span>{msg.message}</span>
+                                    )}
+                                    <span
+                                      className={cn(
+                                        'mt-1 block text-[10px] italic',
+                                        msg.sender === 'You'
+                                          ? 'text-end text-white/80'
+                                          : 'text-slate-500 dark:text-purple-300'
+                                      )}
+                                    >
+                                      {msg.timestamp ? format(new Date(msg.timestamp), 'h:mm a') : ''}
+                                    </span>
+                                  </div>
+                                ))}
+                              </Fragment>
+                            ))}
+                          <div ref={messagesEndRef} />
+                        </div>
+                      </div>
                     </div>
 
-                    <label className='flex-1'>
-                      <span className='sr-only'>Chat Text Box</span>
-                      <input
-                        type='text'
-                        placeholder='Type your messages...'
-                        value={inputMessage}
-                        onChange={(e) => setInputMessage(e.target.value)}
-                        className='h-8 w-full bg-inherit focus-visible:outline-hidden'
+                    {/* Form nhập tin nhắn & đính kèm file */}
+                    <form onSubmit={handleSendMessage} className='flex w-full flex-none gap-2 pt-2 border-t bg-background'>
+                      <input 
+                        type="file" 
+                        ref={imageInputRef} 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={(e) => { const f = e.target.files?.[0]; if(f) handleFileUpload(f, 'image'); }} 
                       />
-                    </label>
+                      <input 
+                        type="file" 
+                        ref={docInputRef} 
+                        className="hidden" 
+                        accept=".pdf,.doc,.docx,.txt,.zip"
+                        onChange={(e) => { const f = e.target.files?.[0]; if(f) handleFileUpload(f, 'doc'); }} 
+                      />
 
-                    <Button type='submit' variant='ghost' size='icon' className='hidden sm:inline-flex text-[#6d28d9]'>
-                      <Send size={20} />
-                    </Button>
+                      <div className='flex flex-1 items-center gap-1 md:gap-2 rounded-md border border-input bg-card px-2 py-1'>
+                        <div className='flex items-center space-x-0.5'>
+                          <Button 
+                            size='icon' 
+                            type='button' 
+                            variant='ghost' 
+                            className='h-8 w-8 rounded-md'
+                            onClick={() => imageInputRef.current?.click()}
+                            title="Đính kèm ảnh"
+                          >
+                            <Plus size={18} className='stroke-muted-foreground' />
+                          </Button>
+
+                          <Button 
+                            size='icon' 
+                            type='button' 
+                            variant='ghost' 
+                            className='hidden h-8 w-8 rounded-md sm:inline-flex'
+                            onClick={() => imageInputRef.current?.click()}
+                            title="Gửi ảnh"
+                          >
+                            <ImagePlus size={18} className='stroke-muted-foreground' />
+                          </Button>
+
+                          <Button 
+                            size='icon' 
+                            type='button' 
+                            variant='ghost' 
+                            className='hidden h-8 w-8 rounded-md sm:inline-flex'
+                            onClick={() => docInputRef.current?.click()}
+                            title="Gửi tài liệu"
+                          >
+                            <Paperclip size={18} className='stroke-muted-foreground' />
+                          </Button>
+                        </div>
+
+                        <input
+                          type='text'
+                          placeholder='Type your messages...'
+                          value={inputMessage}
+                          onChange={(e) => setInputMessage(e.target.value)}
+                          className='h-9 w-full bg-transparent text-sm focus-visible:outline-none px-2'
+                        />
+
+                        <Button type='submit' size='icon' variant='ghost' className='h-9 w-9 text-[#6d28d9] flex-shrink-0'>
+                          <Send size={18} />
+                        </Button>
+                      </div>
+                    </form>
                   </div>
-                  
-                  <Button type='submit' className='h-full sm:hidden bg-[#6d28d9] text-white'>
-                    <Send size={18} /> Send
-                  </Button>
-                </form>
-              </div>
+                </>
+              )}
             </div>
           ) : (
             <div
               className={cn(
-                'absolute inset-0 start-full z-50 hidden w-full flex-1 flex-col justify-center rounded-md border bg-card shadow-xs sm:static sm:z-auto sm:flex'
+                'hidden sm:flex flex-1 flex-col items-center justify-center rounded-md border bg-card shadow-xs p-6 text-center'
               )}
             >
-              <div className='flex flex-col items-center space-y-6'>
-                <div className='flex size-16 items-center justify-center rounded-full border-2 border-purple-300 bg-purple-50 text-[#6d28d9]'>
-                  <MessagesSquare className='size-8' />
-                </div>
-                <div className='space-y-2 text-center'>
-                  <h1 className='text-xl font-semibold'>Your messages</h1>
-                  <p className='text-sm text-muted-foreground'>
-                    Send a message to start a chat.
-                  </p>
-                </div>
-                <Button className='bg-[#6d28d9] text-white hover:bg-purple-800' onClick={() => setCreateConversationDialog(true)}>
-                  Send message
-                </Button>
+              <div className='flex size-16 items-center justify-center rounded-full border-2 border-purple-300 bg-purple-50 text-[#6d28d9] mb-4'>
+                <MessagesSquare className='size-8' />
               </div>
+              <h1 className='text-xl font-semibold mb-1'>Your messages</h1>
+              <p className='text-sm text-muted-foreground mb-6'>
+                Send a message to start a chat.
+              </p>
+              <Button className='bg-[#6d28d9] text-white hover:bg-purple-800' onClick={() => setCreateConversationDialog(true)}>
+                Send message
+              </Button>
             </div>
           )}
         </section>
@@ -619,6 +655,7 @@ export function Chats() {
           onSelectNewChat={(chatData) => {
             setSelectedUser(chatData)
             setMobileSelectedUser(chatData)
+            setInCall(false)
           }}
         />
       </Main>
