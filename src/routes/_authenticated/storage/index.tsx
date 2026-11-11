@@ -17,6 +17,7 @@ interface FileItem {
   url: string
   size: string
   fullPath: string
+  isImage: boolean
 }
 
 function StoragePage() {
@@ -56,7 +57,18 @@ function StoragePage() {
       const filePromises = res.items.map(async (itemRef: StorageReference) => {
         const url = await getDownloadURL(itemRef)
         const originalName = itemRef.name.includes('_') ? itemRef.name.substring(itemRef.name.indexOf('_') + 1) : itemRef.name
-        return { name: originalName, url, size: 'Cao cấp (Hỗ trợ tài liệu lớn đến 1GB)', fullPath: itemRef.fullPath }
+        
+        // Kiểm tra xem file có phải là định dạng hình ảnh hay không để hiển thị preview bìa
+        const lowerName = originalName.toLowerCase()
+        const isImage = lowerName.endsWith('.png') || lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg') || lowerName.endsWith('.webp') || lowerName.endsWith('.jfif')
+
+        return { 
+          name: originalName, 
+          url, 
+          size: 'Cao cấp (Hỗ trợ tài liệu lớn đến 1GB)', 
+          fullPath: itemRef.fullPath,
+          isImage
+        }
       })
       const resolvedFiles = await Promise.all(filePromises)
       setFiles(resolvedFiles)
@@ -65,7 +77,7 @@ function StoragePage() {
     }
   }
 
-  // Tải file lên kho cá nhân (Nâng cấp giới hạn cho phép lên tới 1GB)
+  // Tải file lên kho cá nhân (Hỗ trợ tài liệu lớn đến 1GB)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !currentUser) {
@@ -73,7 +85,6 @@ function StoragePage() {
       return;
     }
 
-    // Mở rộng giới hạn lên tới 1GB cho phép xử lý tài liệu lớn
     if (file.size > 1024 * 1024 * 1024) {
       alert("⚠️ Tài liệu vượt quá giới hạn 1GB! Vui lòng liên hệ nâng cấp gói lưu trữ chuyên sâu đặc biệt.");
       return;
@@ -238,7 +249,7 @@ function StoragePage() {
             <label className='cursor-pointer bg-[#6d28d9] text-white px-4 py-2 rounded-md font-medium hover:bg-purple-800 transition flex items-center gap-2 shadow-md text-sm'>
               {uploading ? <Loader2 className='size-4 animate-spin' /> : null}
               {uploading ? `Đang tải lên (${progress}%)...` : '+ Tải tài liệu lên'}
-              <input type='file' className='hidden' onChange={handleFileUpload} disabled={uploading} accept='.pdf,.doc,.docx,.txt,.epub' />
+              <input type='file' className='hidden' onChange={handleFileUpload} disabled={uploading} accept='.pdf,.doc,.docx,.txt,.epub,.png,.jpg,.jpeg,.webp' />
             </label>
           </div>
         </div>
@@ -283,7 +294,7 @@ function StoragePage() {
             ) : (
               <div className='flex-1 overflow-y-auto pr-1'>
                 {viewMode === 'grid' ? (
-                  /* GIAO DIỆN BÌA SÁCH / BÌA TÀI LIỆU (CARD GRID) */
+                  /* GIAO DIỆN BÌA SÁCH / BÌA TÀI LIỆU TRỰC QUAN (CARD GRID) */
                   <div className='grid grid-cols-2 gap-3'>
                     {files.map((file, index) => (
                       <div 
@@ -292,11 +303,21 @@ function StoragePage() {
                         onClick={() => handleStartAnalysis(file)}
                       >
                         <div className='flex flex-col items-center text-center pb-2'>
-                          <div className='w-12 h-16 rounded-md bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center justify-center shadow-inner mb-2 border border-purple-200'>
-                            <FileText size={24} />
-                          </div>
-                          <span className='font-semibold text-xs line-clamp-2 w-full'>{file.name}</span>
+                          {/* Hiển thị ảnh bìa thực tế nếu là file ảnh, hoặc giao diện bìa sách điện tử cao cấp */}
+                          {file.isImage ? (
+                            <div className='w-full h-24 rounded-md overflow-hidden bg-muted mb-2 border shadow-inner flex items-center justify-center'>
+                              <img src={file.url} alt={file.name} className='w-full h-full object-cover' />
+                            </div>
+                          ) : (
+                            <div className='w-14 h-20 rounded-md bg-gradient-to-br from-purple-700 to-indigo-900 text-white flex flex-col items-center justify-center p-1 shadow-md mb-2 border border-purple-400/30 relative overflow-hidden'>
+                              <div className='absolute top-0 right-0 w-3 h-3 bg-white/20 rounded-bl-full'></div>
+                              <FileText size={20} className='mb-1 text-purple-200' />
+                              <span className='text-[8px] font-bold uppercase tracking-wider text-purple-100 truncate w-full px-1 text-center'>E-Book</span>
+                            </div>
+                          )}
+                          <span className='font-semibold text-xs line-clamp-2 w-full' title={file.name}>{file.name}</span>
                         </div>
+
                         <div className='flex items-center justify-between pt-2 border-t mt-auto text-[10px] text-muted-foreground'>
                           <span className='truncate max-w-[70%]' title={file.size}>{file.size}</span>
                           <Button 
