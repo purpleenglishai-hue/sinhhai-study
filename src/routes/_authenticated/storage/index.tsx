@@ -9,16 +9,18 @@ import { Button } from '@/components/ui/button'
 import { Sparkles, FileText, Loader2, ExternalLink, Trash2, Send } from 'lucide-react'
 
 // Import Firebase chuẩn từ dự án
-import { storage } from '@/firebase'
+import { storage, auth } from '@/firebase'
 import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject, StorageReference } from 'firebase/storage'
 
 interface FileItem {
   name: string
   url: string
   size: string
+  fullPath: string
 }
 
 function StoragePage() {
+  const [currentUser, setCurrentUser] = useState<any>(auth.currentUser)
   const [uploading, setUploading] = useState<boolean>(false)
   const [progress, setProgress] = useState<number>(0)
   const [files, setFiles] = useState<FileItem[]>([])
@@ -29,28 +31,45 @@ function StoragePage() {
   const [chatHistory, setChatHistory] = useState<{ role: 'ai' | 'user'; text: string }[]>([])
   const [userPrompt, setUserPrompt] = useState<string>('')
 
-  const fetchFiles = async () => {
+  // Theo dõi trạng thái đăng nhập thực tế của user
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user)
+      if (user) {
+        fetchUserFiles(user.uid)
+      } else {
+        setFiles([])
+        setSelectedFile(null)
+      }
+    })
+    return () => unsubscribe()
+  }, [])
+
+  // Lấy danh sách tài liệu RIÊNG BIỆT theo UID của từng user
+  const fetchUserFiles = async (uid: string) => {
     try {
-      const listRef = ref(storage, 'documents/')
+      const listRef = ref(storage, `documents/${uid}/`)
       const res = await listAll(listRef)
       const filePromises = res.items.map(async (itemRef: StorageReference) => {
         const url = await getDownloadURL(itemRef)
-        return { name: itemRef.name, url, size: 'Tiêu chuẩn (<= 50MB)' }
+        // Tách tên file gốc bỏ đi phần tiền tố thời gian random ở đầu nếu có
+        const originalName = itemRef.name.includes('_') ? itemRef.name.substring(itemRef.name.indexOf('_') + 1) : itemRef.name
+        return { name: originalName, url, size: 'Tiêu chuẩn (<= 50MB)', fullPath: itemRef.fullPath }
       })
       const resolvedFiles = await Promise.all(filePromises)
       setFiles(resolvedFiles)
     } catch (error) {
-      console.error("Lỗi khi tải danh sách file:", error)
+      console.error("Lỗi khi tải danh sách file cá nhân:", error)
     }
   }
 
-  useEffect(() => {
-    fetchFiles()
-  }, [])
-
+  // Tải file lên kho cá nhân của user hiện tại
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !currentUser) {
+      alert("Vui lòng đăng nhập lại để tải tài liệu lên kho cá nhân.");
+      return;
+    }
 
     // Giới hạn file tối đa 50MB cho phép trong gói tiêu chuẩn
     if (file.size > 50 * 1024 * 1024) {
@@ -59,7 +78,8 @@ function StoragePage() {
     }
 
     setUploading(true)
-    const storageRef = ref(storage, `documents/${Date.now()}_${file.name}`)
+    // Lưu vào thư mục riêng của user: documents/{uid}/
+    const storageRef = ref(storage, `documents/${currentUser.uid}/${Date.now()}_${file.name}`)
     const uploadTask = uploadBytesResumable(storageRef, file)
 
     uploadTask.on(
@@ -75,23 +95,25 @@ function StoragePage() {
       async () => {
         setUploading(false)
         setProgress(0)
-        fetchFiles()
+        fetchUserFiles(currentUser.uid)
       }
     )
   }
 
-  // Xóa tài liệu khỏi Firebase Storage
-  const handleDeleteFile = async (fileName: string) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa tài liệu "${fileName}" không?`)) return
+  // Xóa tài liệu khỏi kho cá nhân trên Firebase Storage
+  const handleDeleteFile = async (fileItem: FileItem) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa tài liệu "${fileItem.name}" không?`)) return
 
     try {
-      const fileRef = ref(storage, `documents/${fileName}`)
+      const fileRef = ref(storage, fileItem.fullPath)
       await deleteObject(fileRef)
-      if (selectedFile?.name === fileName) {
+      if (selectedFile?.name === fileItem.name) {
         setSelectedFile(null)
         setChatHistory([])
       }
-      fetchFiles()
+      if (currentUser) {
+        fetchUserFiles(currentUser.uid)
+      }
     } catch (error) {
       console.error("Lỗi khi xóa file:", error)
       alert("Không thể xóa tài liệu này.")
@@ -112,7 +134,7 @@ function StoragePage() {
           setChatHistory([
             { 
               role: 'ai', 
-              text: `📌 **Báo cáo phân tích chuyên sâu cho tài liệu: ${file.name}**\n\n1. **Tổng quan:** Tài liệu chứa các dữ liệu chuẩn hóa phục vụ học tập và hệ thống hóa kiến thức.\n2. **Các luận điểm chính:** Cung cấp khung chương trình chi tiết, biểu mẫu thực thi rõ ràng.\n3. **Đề xuất:** Bạn có thể nhập câu hỏi bất kỳ ở khung bên dưới để trao đổi sâu hơn với Gemini về tài liệu này!` 
+              text: `📌 **Báo cáo phân tích chuyên sâu cho tài liệu: ${file.name}**\n\n1. **Tổng quan:** Tài liệu chứa các dữ liệu chuẩn hóa phục vụ học tập và hệ thống hóa kiến thức cá nhân.\n2. **Các luận điểm chính:** Cung cấp khung chương trình chi tiết, biểu mẫu thực thi rõ ràng.\n3. **Đề xuất:** Bạn có thể nhập câu hỏi bất kỳ ở khung bên dưới để trao đổi sâu hơn với Gemini về tài liệu này!` 
             }
           ])
           setAnalyzing(false)
@@ -200,8 +222,8 @@ function StoragePage() {
       <Main className='flex flex-col flex-1 p-6 gap-6'>
         <div className='flex justify-between items-center flex-wrap gap-4'>
           <div>
-            <h1 className='text-2xl font-bold tracking-tight'>Kho tài liệu (Storage)</h1>
-            <p className='text-muted-foreground text-sm'>Quản lý tài liệu cá nhân và sử dụng trợ lý AI Gemini đọc hiểu, phân tích chuyên sâu.</p>
+            <h1 className='text-2xl font-bold tracking-tight'>Kho tài liệu cá nhân (Storage)</h1>
+            <p className='text-muted-foreground text-sm'>Quản lý tài liệu riêng tư và sử dụng trợ lý AI Gemini đọc hiểu, phân tích chuyên sâu.</p>
           </div>
           
           <div className='flex items-center gap-3'>
@@ -219,13 +241,13 @@ function StoragePage() {
         {/* Bố cục Grid 12 cột: Thu hẹp danh sách file (4 cột), mở rộng tối đa khung chat AI (8 cột) */}
         <div className='grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start'>
           
-          {/* Cột danh sách file (Thu hẹp gọn gàng - chiếm 4 cột) */}
+          {/* Cột danh sách file cá nhân (Chiếm 4 cột) */}
           <div className='lg:col-span-4 bg-card border rounded-lg p-5 shadow-sm'>
             <h2 className='text-base font-semibold mb-3 flex items-center gap-2'>
-              <FileText className='size-4 text-purple-600' /> Tài liệu ({files.length})
+              <FileText className='size-4 text-purple-600' /> Tài liệu của tôi ({files.length})
             </h2>
             {files.length === 0 ? (
-              <p className='text-muted-foreground text-center py-8 text-xs'>Chưa có tài liệu nào trong kho.</p>
+              <p className='text-muted-foreground text-center py-8 text-xs'>Chưa có tài liệu cá nhân nào trong kho.</p>
             ) : (
               <div className='space-y-3 max-h-[600px] overflow-y-auto pr-1'>
                 {files.map((file, index) => (
@@ -259,7 +281,7 @@ function StoragePage() {
                           variant='ghost' 
                           className='h-7 w-7 text-destructive hover:bg-destructive/10'
                           title="Xóa"
-                          onClick={() => handleDeleteFile(file.name)}
+                          onClick={() => handleDeleteFile(file)}
                         >
                           <Trash2 className='size-3.5' />
                         </Button>
@@ -271,7 +293,7 @@ function StoragePage() {
             )}
           </div>
 
-          {/* Cột hiển thị kết quả phân tích AI & Khung chat hỏi đáp (Mở rộng tối đa - chiếm 8 cột) */}
+          {/* Cột hiển thị kết quả phân tích AI & Khung chat hỏi đáp (Chiếm 8 cột) */}
           <div className='lg:col-span-8 bg-card border rounded-lg p-6 shadow-sm flex flex-col h-[650px]'>
             <h2 className='text-lg font-semibold mb-2 flex items-center gap-2 text-purple-700'>
               <Sparkles className='size-5' /> Trợ lý AI đọc tài liệu
@@ -290,7 +312,7 @@ function StoragePage() {
                 <div className='flex flex-col items-center justify-center h-full text-center text-muted-foreground p-6'>
                   <Sparkles className='size-12 text-purple-300 mb-2' />
                   <p className='text-sm font-medium'>Chưa chọn tài liệu nào.</p>
-                  <p className='text-xs text-muted-foreground mt-1'>Hãy chọn một tài liệu từ danh sách bên trái để trợ lý Gemini đọc và phân tích chi tiết.</p>
+                  <p className='text-xs text-muted-foreground mt-1'>Hãy chọn một tài liệu cá nhân từ danh sách bên trái để trợ lý Gemini đọc và phân tích chi tiết.</p>
                 </div>
               )}
 
