@@ -1,5 +1,5 @@
 import { Outlet } from '@tanstack/react-router'
-import { Monitor, Bell, Palette, Wrench, UserCog } from 'lucide-react'
+import { UserCog, CreditCard, ShieldCheck, HelpCircle } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { ConfigDrawer } from '@/components/config-drawer'
 import { Header } from '@/components/layout/header'
@@ -9,31 +9,27 @@ import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { SidebarNav } from './components/sidebar-nav'
 
+// Cấu hình các mục điều hướng tập trung vào thông tin cá nhân, gói cước và hạ tầng thanh toán
 const sidebarNavItems = [
   {
-    title: 'Profile',
+    title: 'Thông tin cá nhân',
     href: '/settings',
     icon: <UserCog size={18} />,
   },
   {
-    title: 'Account',
+    title: 'Gói cước & Đăng ký',
     href: '/settings/account',
-    icon: <Wrench size={18} />,
+    icon: <CreditCard size={18} />,
   },
   {
-    title: 'Appearance',
+    title: 'Bảo mật & Hạ tầng',
     href: '/settings/appearance',
-    icon: <Palette size={18} />,
+    icon: <ShieldCheck size={18} />,
   },
   {
-    title: 'Notifications',
+    title: 'Trợ giúp & Hướng dẫn',
     href: '/settings/notifications',
-    icon: <Bell size={18} />,
-  },
-  {
-    title: 'Display',
-    href: '/settings/display',
-    icon: <Monitor size={18} />,
+    icon: <HelpCircle size={18} />,
   },
 ]
 
@@ -50,11 +46,11 @@ export function Settings() {
 
       <Main fixed>
         <div className='space-y-0.5'>
-          <h1 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            Settings
+          <h1 className='text-2xl font-bold tracking-tight md:text-3xl text-purple-700 dark:text-purple-300'>
+            Quản lý Tài khoản & Gói cước
           </h1>
-          <p className='text-muted-foreground'>
-            Manage your account settings and set e-mail preferences.
+          <p className='text-muted-foreground text-sm'>
+            Theo dõi thông tin cá nhân, lịch sử đăng ký gói cước và hạ tầng thanh toán độc quyền tại sinhhai.com.
           </p>
         </div>
         <Separator className='my-4 lg:my-6' />
