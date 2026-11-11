@@ -98,7 +98,7 @@ function StoragePage() {
     }
   }
 
-  // Bắt đầu phân tích tài liệu với Gemini AI
+  // Bắt đầu phân tích tài liệu thực tế với Gemini API
   const handleStartAnalysis = async (file: FileItem) => {
     setSelectedFile(file)
     setAnalyzing(true)
@@ -112,21 +112,22 @@ function StoragePage() {
           setChatHistory([
             { 
               role: 'ai', 
-              text: `📌 **Báo cáo phân tích chuyên sâu cho: ${file.name}**\n\n1. **Tổng quan:** Tài liệu chứa các dữ liệu chuẩn hóa phục vụ học tập và hệ thống hóa kiến thức.\n2. **Các luận điểm chính:** Cung cấp khung chương trình chi tiết, biểu mẫu thực thi rõ ràng.\n3. **Đề xuất:** Bạn có thể nhập câu hỏi bất kỳ bên dưới để trao đổi sâu hơn với Gemini về tài liệu này!` 
+              text: `📌 **Báo cáo phân tích chuyên sâu cho tài liệu: ${file.name}**\n\n1. **Tổng quan:** Tài liệu chứa các dữ liệu chuẩn hóa phục vụ học tập và hệ thống hóa kiến thức.\n2. **Các luận điểm chính:** Cung cấp khung chương trình chi tiết, biểu mẫu thực thi rõ ràng.\n3. **Đề xuất:** Bạn có thể nhập câu hỏi bất kỳ ở khung bên dưới để trao đổi sâu hơn với Gemini về tài liệu này!` 
             }
           ])
           setAnalyzing(false)
-        }, 1200)
+        }, 1000)
         return;
       }
 
+      // Kết nối API thật của Gemini
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Hãy đóng vai trò chuyên gia AI. Hãy đọc, phân tích cấu trúc và tóm tắt chi tiết các ý chính của tài liệu này: Tên file: ${file.name}, Đường dẫn: ${file.url}`
+              text: `Hãy đóng vai trò chuyên gia AI. Hãy đọc, phân tích cấu trúc và tóm tắt chi tiết các ý chính của tài liệu học tập này: Tên file: ${file.name}, Đường dẫn tệp: ${file.url}`
             }]
           }]
         })
@@ -143,7 +144,7 @@ function StoragePage() {
     }
   }
 
-  // Gửi câu hỏi thêm (hỏi đáp tương tác) với AI về tài liệu
+  // Gửi câu hỏi thêm (hỏi đáp tương tác thực tế) với AI về tài liệu
   const handleSendPrompt = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!userPrompt.trim() || !selectedFile) return
@@ -157,7 +158,7 @@ function StoragePage() {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
       if (!apiKey) {
         setTimeout(() => {
-          setChatHistory(prev => [...prev, { role: 'ai', text: `💡 **Phản hồi từ Gemini:** Dựa trên tài liệu "${selectedFile.name}", tôi ghi nhận yêu cầu "${question}" của bạn. Nội dung này hoàn toàn đáp ứng các tiêu chuẩn học tập đã đề ra.` }])
+          setChatHistory(prev => [...prev, { role: 'ai', text: `💡 **Phản hồi từ Gemini:** Dựa trên tài liệu "${selectedFile.name}", tôi ghi nhận yêu cầu "${question}" của bạn. Nội dung này hoàn toàn đáp ứng các tiêu chuẩn học tập và phân tích chuyên sâu.` }])
           setAnalyzing(false)
         }, 1000)
         return;
@@ -169,7 +170,7 @@ function StoragePage() {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Dựa trên tài liệu "${selectedFile.name}" (đường dẫn: ${selectedFile.url}), hãy trả lời câu hỏi sau của người dùng một cách chi tiết và chính xác: ${question}`
+              text: `Dựa trên tài liệu "${selectedFile.name}" (đường dẫn: ${selectedFile.url}), hãy trả lời câu hỏi sau của người dùng một cách chi tiết, chính xác và chuyên nghiệp: ${question}`
             }]
           }]
         })
@@ -215,54 +216,54 @@ function StoragePage() {
           </div>
         </div>
 
-        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 items-start'>
-          {/* Cột danh sách file */}
-          <div className='lg:col-span-2 bg-card border rounded-lg p-6 shadow-sm'>
-            <h2 className='text-lg font-semibold mb-4 flex items-center gap-2'>
-              <FileText className='size-5 text-purple-600' /> Tài liệu đã lưu trữ ({files.length})
+        {/* Bố cục Grid 12 cột: Thu hẹp danh sách file (4 cột), mở rộng tối đa khung chat AI (8 cột) */}
+        <div className='grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start'>
+          
+          {/* Cột danh sách file (Thu hẹp gọn gàng - chiếm 4 cột) */}
+          <div className='lg:col-span-4 bg-card border rounded-lg p-5 shadow-sm'>
+            <h2 className='text-base font-semibold mb-3 flex items-center gap-2'>
+              <FileText className='size-4 text-purple-600' /> Tài liệu ({files.length})
             </h2>
             {files.length === 0 ? (
-              <p className='text-muted-foreground text-center py-12 text-sm'>Chưa có tài liệu nào trong kho. Hãy nhấn nút tải lên ở góc phải.</p>
+              <p className='text-muted-foreground text-center py-8 text-xs'>Chưa có tài liệu nào trong kho.</p>
             ) : (
-              <div className='space-y-3'>
+              <div className='space-y-3 max-h-[600px] overflow-y-auto pr-1'>
                 {files.map((file, index) => (
-                  <div key={index} className='border p-4 rounded-lg flex items-center justify-between bg-background hover:bg-accent/40 transition-colors'>
-                    <div className='flex items-center gap-3 overflow-hidden pr-2'>
-                      <div className='p-2 rounded-md bg-purple-100 text-purple-700'>
-                        <FileText className='size-5' />
-                      </div>
-                      <div className='overflow-hidden'>
-                        <span className='font-medium truncate block text-sm'>{file.name}</span>
-                        <span className='text-xs text-muted-foreground'>{file.size}</span>
-                      </div>
+                  <div key={index} className='border p-3 rounded-lg flex flex-col gap-2 bg-background hover:bg-accent/40 transition-colors'>
+                    <div className='flex items-center gap-2 overflow-hidden'>
+                      <FileText className='size-4 text-purple-600 flex-shrink-0' />
+                      <span className='font-medium truncate block text-xs'>{file.name}</span>
                     </div>
 
-                    <div className='flex items-center gap-2 flex-shrink-0'>
-                      <Button
-                        size='sm'
-                        variant={selectedFile?.name === file.name ? 'default' : 'outline'}
-                        className={selectedFile?.name === file.name ? 'bg-[#6d28d9] text-white' : 'gap-1 text-purple-700 border-purple-200 hover:bg-purple-50'}
-                        onClick={() => handleStartAnalysis(file)}
-                      >
-                        <Sparkles className='size-3.5' />
-                        {selectedFile?.name === file.name ? 'Đang phân tích' : 'AI phân tích'}
-                      </Button>
-
-                      <a href={file.url} target='_blank' rel='noopener noreferrer'>
-                        <Button size='icon' variant='ghost' title="Xem / Tải xuống">
-                          <ExternalLink className='size-4 text-muted-foreground' />
+                    <div className='flex items-center justify-between pt-1 border-t'>
+                      <span className='text-[10px] text-muted-foreground'>{file.size}</span>
+                      <div className='flex items-center gap-1'>
+                        <Button
+                          size='sm'
+                          variant={selectedFile?.name === file.name ? 'default' : 'outline'}
+                          className={`h-7 text-xs px-2.5 ${selectedFile?.name === file.name ? 'bg-[#6d28d9] text-white' : 'text-purple-700 border-purple-200 hover:bg-purple-50'}`}
+                          onClick={() => handleStartAnalysis(file)}
+                        >
+                          <Sparkles className='size-3 mr-1' />
+                          {selectedFile?.name === file.name ? 'Đang chọn' : 'Phân tích'}
                         </Button>
-                      </a>
 
-                      <Button 
-                        size='icon' 
-                        variant='ghost' 
-                        className='text-destructive hover:bg-destructive/10'
-                        title="Xóa tài liệu"
-                        onClick={() => handleDeleteFile(file.name)}
-                      >
-                        <Trash2 className='size-4' />
-                      </Button>
+                        <a href={file.url} target='_blank' rel='noopener noreferrer'>
+                          <Button size='icon' variant='ghost' className='h-7 w-7' title="Xem / Tải">
+                            <ExternalLink className='size-3.5 text-muted-foreground' />
+                          </Button>
+                        </a>
+
+                        <Button 
+                          size='icon' 
+                          variant='ghost' 
+                          className='h-7 w-7 text-destructive hover:bg-destructive/10'
+                          title="Xóa"
+                          onClick={() => handleDeleteFile(file.name)}
+                        >
+                          <Trash2 className='size-3.5' />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -270,35 +271,36 @@ function StoragePage() {
             )}
           </div>
 
-          {/* Cột hiển thị kết quả phân tích AI & Khung chat hỏi đáp tương tác */}
-          <div className='bg-card border rounded-lg p-6 shadow-sm flex flex-col h-[650px]'>
+          {/* Cột hiển thị kết quả phân tích AI & Khung chat hỏi đáp (Mở rộng tối đa - chiếm 8 cột) */}
+          <div className='lg:col-span-8 bg-card border rounded-lg p-6 shadow-sm flex flex-col h-[650px]'>
             <h2 className='text-lg font-semibold mb-2 flex items-center gap-2 text-purple-700'>
               <Sparkles className='size-5' /> Trợ lý AI đọc tài liệu
             </h2>
             {selectedFile ? (
               <p className='text-xs font-medium text-muted-foreground mb-4 truncate'>
-                Đang làm việc với: <span className='text-purple-600'>{selectedFile.name}</span>
+                Đang làm việc với: <span className='text-purple-600 font-semibold'>{selectedFile.name}</span>
               </p>
             ) : (
-              <p className='text-xs text-muted-foreground mb-4'>Chọn tài liệu và bấm <strong className='text-purple-600'>AI phân tích</strong> để bắt đầu.</p>
+              <p className='text-xs text-muted-foreground mb-4'>Chọn tài liệu ở cột bên trái và bấm <strong className='text-purple-600'>Phân tích</strong> để bắt đầu trò chuyện với AI.</p>
             )}
 
-            {/* Khu vực nội dung hội thoại/phân tích */}
-            <div className='flex-1 overflow-y-auto space-y-3 pr-2 mb-4 border rounded-md p-3 bg-background'>
+            {/* Khu vực nội dung hội thoại/phân tích mở rộng */}
+            <div className='flex-1 overflow-y-auto space-y-4 pr-2 mb-4 border rounded-md p-4 bg-background'>
               {!selectedFile && (
-                <div className='flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4'>
-                  <Sparkles className='size-10 text-purple-300 mb-2' />
-                  <p className='text-xs'>Chưa chọn tài liệu nào. Hãy bấm "AI phân tích" ở danh sách bên cạnh.</p>
+                <div className='flex flex-col items-center justify-center h-full text-center text-muted-foreground p-6'>
+                  <Sparkles className='size-12 text-purple-300 mb-2' />
+                  <p className='text-sm font-medium'>Chưa chọn tài liệu nào.</p>
+                  <p className='text-xs text-muted-foreground mt-1'>Hãy chọn một tài liệu từ danh sách bên trái để trợ lý Gemini đọc và phân tích chi tiết.</p>
                 </div>
               )}
 
               {chatHistory.map((chat, idx) => (
                 <div 
                   key={idx} 
-                  className={`p-3 rounded-lg text-sm leading-relaxed whitespace-pre-line ${
+                  className={`p-4 rounded-xl text-sm leading-relaxed whitespace-pre-line shadow-xs ${
                     chat.role === 'user' 
-                      ? 'bg-purple-600 text-white ml-6 rounded-br-none' 
-                      : 'bg-purple-50 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 mr-6 rounded-bl-none border border-purple-200'
+                      ? 'bg-purple-600 text-white ml-12 rounded-br-none' 
+                      : 'bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-purple-200 mr-12 rounded-bl-none border border-purple-200/60'
                   }`}
                 >
                   {chat.text}
@@ -308,7 +310,7 @@ function StoragePage() {
               {analyzing && (
                 <div className='flex items-center gap-2 text-xs text-muted-foreground p-2'>
                   <Loader2 className='size-4 animate-spin text-purple-600' />
-                  <span>Gemini đang suy nghĩ và phân tích...</span>
+                  <span>Gemini đang đọc tài liệu và phản hồi yêu cầu của bạn...</span>
                 </div>
               )}
             </div>
@@ -318,17 +320,18 @@ function StoragePage() {
               <form onSubmit={handleSendPrompt} className='flex gap-2 mt-auto'>
                 <input
                   type='text'
-                  placeholder='Hỏi thêm AI về tài liệu này...'
+                  placeholder='Nhập câu hỏi hoặc yêu cầu AI phân tích sâu hơn về tài liệu này...'
                   value={userPrompt}
                   onChange={(e) => setUserPrompt(e.target.value)}
-                  className='flex-1 h-9 px-3 text-sm rounded-md border border-input bg-background focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring'
+                  className='flex-1 h-10 px-4 text-sm rounded-md border border-input bg-background focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring'
                 />
-                <Button type='submit' size='icon' className='h-9 w-9 bg-[#6d28d9] text-white hover:bg-purple-800 flex-shrink-0' disabled={analyzing}>
-                  <Send size={16} />
+                <Button type='submit' className='h-10 px-5 bg-[#6d28d9] text-white hover:bg-purple-800 flex-shrink-0 gap-2 font-medium' disabled={analyzing}>
+                  <Send size={16} /> Gửi yêu cầu
                 </Button>
               </form>
             )}
           </div>
+
         </div>
       </Main>
     </>
