@@ -12,18 +12,18 @@ import { getDisplayNameInitials } from '@/lib/utils'
 
 // Import Firebase thực tế
 import { auth, db } from '@/firebase'
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore'
+import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore'
 
 export function Settings() {
   const [currentUser, setCurrentUser] = useState<any>(auth.currentUser)
   const [userData, setUserData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   
-  // Trạng thái thống kê hoạt động thực tế của user trên nền tảng
+  // Trạng thái thống kê thực tế lấy hoàn toàn từ hạ tầng
   const [stats, setStats] = useState({
-    storageCount: 3,
-    friendsCount: 5,
-    completedTasks: 12
+    storageCount: 0,
+    friendsCount: 0,
+    completedTasks: 0
   })
 
   useEffect(() => {
@@ -31,15 +31,48 @@ export function Settings() {
       setCurrentUser(user)
       if (user) {
         try {
+          // 1. Lấy thông tin user từ collection 'users'
           const userDocRef = doc(db, 'users', user.uid)
           const userDocSnap = await getDoc(userDocRef)
           if (userDocSnap.exists()) {
             setUserData(userDocSnap.data())
           }
 
-          // Lấy số lượng bạn bè từ collection users thực tế
+          // 2. Lấy số lượng bạn bè thực tế (tổng số user khác trên hệ thống)
           const usersSnapshot = await getDocs(collection(db, 'users'))
-          setStats(prev => ({ ...prev, friendsCount: Math.max(usersSnapshot.size - 1, 1) }))
+          const realFriendsCount = Math.max(usersSnapshot.size - 1, 0)
+
+          // 3. Lấy số lượng tài liệu thực tế từ collection 'files' hoặc 'storage' của user
+          let realStorageCount = 0
+          try {
+            const filesQuery = query(collection(db, 'files'), where('userId', '==', user.uid))
+            const filesSnap = await getDocs(filesQuery)
+            realStorageCount = filesSnap.size
+          } catch (e) {
+            // Nếu chưa khởi tạo collection files thì dùng dữ liệu thực từ mảng files của user
+            realStorageCount = userDocSnap.data()?.filesCount || 0
+          }
+
+          // 4. Lấy số nhiệm vụ đã hoàn thành thực tế
+          let realTasksCount = 0
+          try {
+            const tasksQuery = query(
+              collection(db, 'tasks'), 
+              where('userId', '==', user.uid),
+              where('status', '==', 'completed')
+            )
+            const tasksSnap = await getDocs(tasksQuery)
+            realTasksCount = tasksSnap.size
+          } catch (e) {
+            realTasksCount = userDocSnap.data()?.completedTasksCount || 0
+          }
+
+          setStats({
+            storageCount: realStorageCount,
+            friendsCount: realFriendsCount,
+            completedTasks: realTasksCount
+          })
+
         } catch (error) {
           console.error("Lỗi đồng bộ dữ liệu người dùng:", error)
         }
@@ -52,9 +85,9 @@ export function Settings() {
   const displayName = userData?.fullName || currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Thành viên sinhHAI'
   const email = currentUser?.email || userData?.email || 'Chưa cập nhật email'
   const avatarUrl = userData?.profile || userData?.photoURL || currentUser?.photoURL || ''
-  const roleTitle = email === 'purpleenglishai@gmail.com' ? 'Quản trị viên Hệ thống' : 'Thành viên Học tập Chính thức'
+  const roleTitle = email === 'purpleenglishai@gmail.com' ? 'Quản trị viên Hệ thống' : 'Thành viên Học tập'
   
-  const subscriptionPlan = userData?.plan || 'Gói Tiêu chuẩn (Pro Standard)'
+  const subscriptionPlan = userData?.plan || 'Gói Tiêu chuẩn (Standard Pro)'
   const subscriptionStatus = userData?.status || 'Đang hoạt động'
   const expiryDate = userData?.expiryDate || '31/12/2026'
 
@@ -67,10 +100,11 @@ export function Settings() {
         <ProfileDropdown />
       </Header>
 
-      <Main fixed>
-        <div className='max-w-4xl mx-auto space-y-6 pb-10'>
-          {/* Tiêu đề trang được rút gọn tinh tế */}
-          <div className='space-y-1'>
+      {/* Bỏ thuộc tính 'fixed' để trang có thanh cuộn tự nhiên, không bị vỡ/kẹt giao diện */}
+      <Main className='overflow-y-auto h-full pb-16'>
+        <div className='max-w-4xl mx-auto space-y-6'>
+          {/* Tiêu đề trang */}
+          <div className='space-y-1 pt-2'>
             <h1 className='text-2xl font-bold tracking-tight md:text-3xl text-purple-700 dark:text-purple-300 flex items-center gap-2'>
               <User className='size-8 text-purple-600' /> Tài khoản của tôi
             </h1>
@@ -83,12 +117,12 @@ export function Settings() {
 
           {loading ? (
             <div className='flex justify-center items-center py-20 text-muted-foreground'>
-              Đang tải thông tin tài khoản...
+              Đang đồng bộ dữ liệu tài khoản từ hạ tầng...
             </div>
           ) : (
-            <div className='grid gap-6 md:grid-cols-3'>
+            <div className='grid gap-6 md:grid-cols-3 pb-12'>
               {/* Cột trái: Thẻ đại diện cá nhân */}
-              <div className='md:col-span-1 rounded-xl border bg-card p-6 shadow-sm flex flex-col items-center text-center space-y-4'>
+              <div className='md:col-span-1 rounded-xl border bg-card p-6 shadow-sm flex flex-col items-center text-center space-y-4 h-fit'>
                 <Avatar className='size-24 border-4 border-purple-200 shadow-md'>
                   <AvatarImage src={avatarUrl} alt={displayName} />
                   <AvatarFallback className='bg-purple-100 text-purple-700 text-2xl font-bold'>
@@ -108,7 +142,7 @@ export function Settings() {
 
               {/* Cột phải: Thông tin hồ sơ & Thống kê học tập thực tế */}
               <div className='md:col-span-2 space-y-6'>
-                {/* Thống kê hoạt động học tập & tài nguyên */}
+                {/* Thống kê hoạt động học tập & tài nguyên thực tế */}
                 <div className='grid grid-cols-3 gap-4'>
                   <div className='rounded-xl border bg-card p-4 text-center space-y-1 shadow-sm'>
                     <div className='flex justify-center text-purple-600'><BookOpen size={20} /></div>
