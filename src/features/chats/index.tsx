@@ -18,7 +18,7 @@ import {
   ShieldAlert,
   PhoneOff,
   UserPlus,
-  UserX,
+  UserMinus,
 } from 'lucide-react'
 import { cn, getDisplayNameInitials } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -48,9 +48,7 @@ import {
   getDoc,
   updateDoc,
   getDocs,
-  deleteDoc,
-  arrayUnion,
-  arrayRemove
+  deleteDoc
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
@@ -91,119 +89,86 @@ export function Chats() {
     return () => unsubscribeAuth()
   }, [])
 
-  // Lấy danh sách user thật trên hệ thống và cá nhân hóa danh bạ liên lạc
-  useEffect(() => {
-    if (!currentUser) {
-      setConversations([])
-      return
-    }
-
-    const fetchRealUsers = async () => {
-      try {
-        // Lấy danh sách bạn bè riêng của user từ Firestore
-        const userDocRef = doc(db, 'user_contacts', currentUser.uid)
-        const userDocSnap = await getDoc(userDocRef)
-        const hiddenUserIds = userDocSnap.exists() ? (userDocSnap.data().hiddenIds || []) : []
-
-        const usersSnapshot = await getDocs(collection(db, 'users'))
-        const realUsers: ChatUser[] = []
-
-        usersSnapshot.forEach((docSnap) => {
-          const data = docSnap.data() as any
-          if (docSnap.id !== currentUser.uid && !hiddenUserIds.includes(docSnap.id)) {
-            let displayName = data.fullName || data.name || (data.email ? data.email.split('@')[0] : 'Thành viên')
-            let avatarUrl = data.profile || data.photoURL || data.avatar || ''
-            let userTitle = 'Hoạt động gần đây'
-
-            if (data.email === 'purpleenglishai@gmail.com') {
-              displayName = 'englishai purple'
-              userTitle = 'Hệ thống hỗ trợ chính thức'
-            }
-
-            realUsers.push({
-              id: docSnap.id,
-              fullName: displayName,
-              username: data.username || displayName,
-              title: userTitle,
-              profile: avatarUrl,
-              messages: []
-            })
-          }
-        })
-
-        if (realUsers.length === 0) {
-          realUsers.push({
-            id: 'purple_english_real',
-            fullName: 'englishai purple',
-            username: 'purpleenglishai',
-            title: 'Hệ thống hỗ trợ chính thức',
-            profile: '',
-            messages: []
-          })
-        }
-
-        setConversations(realUsers)
-      } catch (error) {
-        console.error("Lỗi tải danh sách user:", error)
-      }
-    }
-
-    fetchRealUsers()
-  }, [currentUser])
-
-  // Chức năng Xóa/Gỡ user khỏi danh sách hiển thị của tài khoản hiện tại
-  const handleRemoveUserFromList = async (targetUserId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
+  // Lấy danh sách user từ Firestore (loại trừ chính user đang đăng nhập)
+  const fetchRealUsers = async () => {
     if (!currentUser) return
-    if (!confirm("Bạn có chắc chắn muốn xóa/ẩn người dùng này khỏi danh sách trò chuyện không?")) return
-
-    try {
-      const userDocRef = doc(db, 'user_contacts', currentUser.uid)
-      await setDoc(userDocRef, {
-        hiddenIds: arrayUnion(targetUserId)
-      }, { merge: true })
-
-      setConversations(prev => prev.filter(u => u.id !== targetUserId))
-      if (selectedUser?.id === targetUserId) {
-        setSelectedUser(null)
-        setMobileSelectedUser(null)
-      }
-    } catch (error) {
-      console.error("Lỗi khi xóa user khỏi danh sách:", error)
-    }
-  }
-
-  // Chức năng Thêm bạn mới / Khôi phục danh bạ
-  const handleAddUser = async () => {
-    const friendEmailOrName = prompt("Nhập email hoặc tên thành viên bạn muốn kết nối thêm vào danh sách:");
-    if (!friendEmailOrName || !currentUser) return
-
     try {
       const usersSnapshot = await getDocs(collection(db, 'users'))
-      let foundUser: any = null
+      const realUsers: ChatUser[] = []
 
       usersSnapshot.forEach((docSnap) => {
         const data = docSnap.data() as any
-        if (data.email === friendEmailOrName || data.fullName === friendEmailOrName || docSnap.id === friendEmailOrName) {
-          foundUser = { id: docSnap.id, ...data }
+        if (docSnap.id !== currentUser.uid) {
+          let displayName = data.fullName || data.name || (data.email ? data.email.split('@')[0] : 'Thành viên')
+          let avatarUrl = data.profile || data.photoURL || data.avatar || ''
+          let userTitle = 'Thành viên trực tuyến'
+
+          if (data.email === 'purpleenglishai@gmail.com') {
+            displayName = 'englishai purple'
+            userTitle = 'Hệ thống hỗ trợ chính thức'
+          }
+
+          realUsers.push({
+            id: docSnap.id,
+            fullName: displayName,
+            username: data.username || displayName,
+            title: userTitle,
+            profile: avatarUrl,
+            messages: []
+          })
         }
       })
 
-      if (!foundUser) {
-        alert("Không tìm thấy người dùng này trên hệ thống sinhHAI!");
-        return;
+      if (realUsers.length === 0) {
+        realUsers.push({
+          id: 'purple_english_real',
+          fullName: 'englishai purple',
+          username: 'purpleenglishai',
+          title: 'Hệ thống hỗ trợ chính thức',
+          profile: '',
+          messages: []
+        })
       }
 
-      // Xóa khỏi danh sách ẩn nếu trước đó đã từng xóa
-      const userDocRef = doc(db, 'user_contacts', currentUser.uid)
-      await setDoc(userDocRef, {
-        hiddenIds: arrayRemove(foundUser.id)
-      }, { merge: true })
-
-      // Load lại danh sách
-      window.location.reload()
+      setConversations(realUsers)
     } catch (error) {
-      console.error("Lỗi thêm bạn:", error)
+      console.error("Lỗi tải danh sách user thật:", error)
+    }
+  }
+
+  useEffect(() => {
+    fetchRealUsers()
+  }, [currentUser])
+
+  // Thêm nhanh một user liên lạc tùy chỉnh vào danh sách
+  const handleAddCustomUser = async () => {
+    const nameInput = prompt("Nhập tên hiển thị của thành viên muốn thêm vào danh sách:");
+    if (!nameInput || !nameInput.trim()) return;
+
+    const newUserId = `custom_user_${Date.now()}`;
+    const newUserObj: ChatUser = {
+      id: newUserId,
+      fullName: nameInput.trim(),
+      username: nameInput.toLowerCase().replace(/\s+/g, '_'),
+      title: 'Thành viên liên kết mới',
+      profile: '',
+      messages: []
+    };
+
+    setConversations(prev => [newUserObj, ...prev]);
+    alert(`Đã thêm thành công "${nameInput}" vào danh sách trò chuyện!`);
+  }
+
+  // Xóa user khỏi danh sách hiển thị (và reset khung chat nếu đang chọn user đó)
+  const handleDeleteUserFromList = (userId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Ngăn việc bấm nút xóa mà lại kích hoạt chọn user
+    if (!confirm("Bạn có chắc chắn muốn xóa thành viên này khỏi danh sách trò chuyện không?")) return;
+
+    setConversations(prev => prev.filter(u => u.id !== userId));
+    if (selectedUser?.id === userId) {
+      setSelectedUser(null);
+      setMobileSelectedUser(null);
+      setRealtimeMessages([]);
     }
   }
 
@@ -276,7 +241,7 @@ export function Chats() {
 
     const MAX_DEFAULT_FILE_SIZE = 50 * 1024 * 1024;
     if (file.size > MAX_DEFAULT_FILE_SIZE) {
-      alert("⚠️ Tài liệu vượt quá giới hạn 50MB của gói tiêu chuẩn!");
+      alert("⚠️ Tài liệu vượt quá giới hạn 50MB của gói tiêu chuẩn! Vui lòng nâng cấp các gói lưu trữ nâng cao.");
       return;
     }
 
@@ -314,6 +279,7 @@ export function Chats() {
       })
     } catch (error) {
       console.error("Lỗi tải tệp lên Storage:", error)
+      alert("Không thể tải tệp lên hệ thống lưu trữ.")
     }
   }
 
@@ -360,15 +326,15 @@ export function Chats() {
                 </div>
 
                 <div className='flex items-center gap-1'>
-                  {/* Nút Thêm bạn mới */}
+                  {/* Nút thêm user mới trực tiếp */}
                   <Button
                     size='icon'
                     variant='ghost'
-                    onClick={handleAddUser}
-                    className='rounded-lg'
-                    title='Thêm người dùng / Kết bạn'
+                    onClick={handleAddCustomUser}
+                    className='rounded-lg text-purple-700 hover:bg-purple-100'
+                    title="Thêm thành viên mới"
                   >
-                    <UserPlus size={20} className='text-purple-700' />
+                    <UserPlus size={20} />
                   </Button>
 
                   <Button
@@ -376,7 +342,7 @@ export function Chats() {
                     variant='ghost'
                     onClick={() => setCreateConversationDialog(true)}
                     className='rounded-lg'
-                    title='Tạo cuộc trò chuyện mới'
+                    title="Tạo hội thoại mới"
                   >
                     <Edit size={22} className='stroke-muted-foreground' />
                   </Button>
@@ -394,7 +360,7 @@ export function Chats() {
                 <input
                   type='text'
                   className='w-full flex-1 bg-inherit text-sm focus-visible:outline-hidden'
-                  placeholder='Tìm kiếm trò chuyện...'
+                  placeholder='Search chat...'
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -420,7 +386,7 @@ export function Chats() {
                           setActiveCallType(null)
                         }}
                       >
-                        <div className='flex gap-2 items-center w-[78%] relative'>
+                        <div className='flex gap-2 items-center w-full relative overflow-hidden'>
                           <Avatar className='border border-purple-200 relative flex-shrink-0'>
                             <AvatarImage src={profile} alt={username || fullName} />
                             <AvatarFallback className='bg-purple-100 text-purple-700 font-semibold'>
@@ -430,7 +396,7 @@ export function Chats() {
                           {hasUnread && (
                             <span className='absolute left-7 top-0 size-3 rounded-full bg-purple-600 ring-2 ring-background' />
                           )}
-                          <div className='flex-1 overflow-hidden'>
+                          <div className='flex-1 overflow-hidden pr-6'>
                             <div className='flex justify-between items-center'>
                               <span className='font-medium block truncate'>{fullName}</span>
                             </div>
@@ -440,15 +406,15 @@ export function Chats() {
                           </div>
                         </div>
 
-                        {/* Nút Xóa/Gỡ user khỏi danh sách */}
+                        {/* Nút Xóa user khỏi danh sách */}
                         <Button
                           size='icon'
                           variant='ghost'
-                          className='h-7 w-7 text-destructive hover:bg-destructive/10 opacity-70 group-hover:opacity-100 transition-opacity flex-shrink-0'
-                          onClick={(e) => handleRemoveUserFromList(id, e)}
-                          title="Xóa khỏi danh sách"
+                          className='absolute right-2 h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-60 group-hover:opacity-100 transition-opacity'
+                          onClick={(e) => handleDeleteUserFromList(id, e)}
+                          title="Xóa thành viên khỏi danh sách"
                         >
-                          <UserX size={15} />
+                          <Trash2 size={14} />
                         </Button>
                       </div>
                       <Separator className='my-1' />
@@ -456,7 +422,7 @@ export function Chats() {
                   )
                 })
               ) : (
-                <p className='text-center text-xs text-muted-foreground py-4'>Chưa có tài khoản nào trong danh bạ.</p>
+                <p className='text-center text-xs text-muted-foreground py-4'>Chưa có tài khoản nào.</p>
               )}
             </ScrollArea>
           </div>
@@ -506,7 +472,7 @@ export function Chats() {
                     variant={activeCallType === 'video' ? 'default' : 'ghost'}
                     className={cn('hidden size-8 rounded-full sm:inline-flex lg:size-10', activeCallType === 'video' && 'bg-purple-700 text-white')}
                     onClick={() => setActiveCallType(activeCallType === 'video' ? null : 'video')}
-                    title="Gọi Video trực tuyến"
+                    title={activeCallType === 'video' ? "Kết thúc cuộc gọi video" : "Gọi Video trực tuyến"}
                   >
                     <Video size={22} className={activeCallType === 'video' ? 'text-white' : 'stroke-muted-foreground'} />
                   </Button>
@@ -516,7 +482,7 @@ export function Chats() {
                     variant={activeCallType === 'audio' ? 'default' : 'ghost'}
                     className={cn('hidden size-8 rounded-full sm:inline-flex lg:size-10', activeCallType === 'audio' && 'bg-purple-700 text-white')}
                     onClick={() => setActiveCallType(activeCallType === 'audio' ? null : 'audio')}
-                    title="Gọi thoại bảo mật"
+                    title={activeCallType === 'audio' ? "Kết thúc cuộc gọi thoại" : "Gọi thoại bảo mật"}
                   >
                     <Phone size={22} className={activeCallType === 'audio' ? 'text-white' : 'stroke-muted-foreground'} />
                   </Button>
@@ -680,7 +646,7 @@ export function Chats() {
                         <span className='sr-only'>Chat Text Box</span>
                         <input
                           type='text'
-                          placeholder='Nhập tin nhắn...'
+                          placeholder='Type your messages...'
                           value={inputMessage}
                           onChange={(e) => setInputMessage(e.target.value)}
                           className='h-8 w-full bg-inherit focus-visible:outline-hidden'
@@ -693,7 +659,7 @@ export function Chats() {
                     </div>
                     
                     <Button type='submit' className='h-full sm:hidden bg-[#6d28d9] text-white'>
-                      <Send size={18} /> Gửi
+                      <Send size={18} /> Send
                     </Button>
                   </form>
                 </div>
@@ -710,13 +676,13 @@ export function Chats() {
                   <MessagesSquare className='size-8' />
                 </div>
                 <div className='space-y-2 text-center'>
-                  <h1 className='text-xl font-semibold'>Tin nhắn của bạn</h1>
+                  <h1 className='text-xl font-semibold'>Your messages</h1>
                   <p className='text-sm text-muted-foreground'>
-                    Chọn một thành viên hoặc thêm liên hệ để bắt đầu trò chuyện.
+                    Send a message to start a chat.
                   </p>
                 </div>
                 <Button className='bg-[#6d28d9] text-white hover:bg-purple-800' onClick={() => setCreateConversationDialog(true)}>
-                  Gửi tin nhắn mới
+                  Send message
                 </Button>
               </div>
             </div>
