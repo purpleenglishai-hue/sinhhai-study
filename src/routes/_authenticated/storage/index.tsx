@@ -6,12 +6,11 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { Button } from '@/components/ui/button'
-import { Sparkles, FileText, Loader2, ExternalLink, Trash2 } from 'lucide-react'
+import { Sparkles, FileText, Loader2, ExternalLink } from 'lucide-react'
 
-// Import Firebase chuẩn từ dự án của anh
-import { db, storage, auth } from '@/firebase'
-import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject, StorageReference } from 'firebase/storage'
-import { collection, addDoc, getDocs, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore'
+// Import Firebase chuẩn từ dự án của anh (chỉ giữ lại các module thực sự dùng)
+import { storage } from '@/firebase'
+import { ref, uploadBytesResumable, getDownloadURL, listAll, StorageReference } from 'firebase/storage'
 
 interface FileItem {
   id?: string
@@ -88,7 +87,7 @@ function StoragePage() {
 
     try {
       // Gọi Gemini API phân tích nội dung dựa trên URL file tài liệu
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || ""; // Lấy từ biến môi trường của dự án
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY || ""; 
       
       if (!apiKey) {
         // Fallback mô phỏng thông minh nếu chưa cấu hình key trên client thuần
@@ -99,7 +98,6 @@ function StoragePage() {
         return;
       }
 
-      // Nếu đã có API Key, gửi yêu cầu phân tích qua endpoint Gemini
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
