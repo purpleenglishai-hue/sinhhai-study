@@ -18,7 +18,6 @@ import {
   ShieldAlert,
   PhoneOff,
   UserPlus,
-  UserMinus,
 } from 'lucide-react'
 import { cn, getDisplayNameInitials } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -34,7 +33,7 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { NewChat } from './components/new-chat'
 import { type ChatUser, type Convo } from './data/chat-types'
 
-// Import Firebase thực tế
+// Import Firebase thực tế (đã loại bỏ deleteDoc thừa)
 import { db, auth, storage } from '@/firebase'
 import {  
   collection,  
@@ -47,8 +46,7 @@ import {
   setDoc,
   getDoc,
   updateDoc,
-  getDocs,
-  deleteDoc
+  getDocs
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
@@ -90,53 +88,57 @@ export function Chats() {
   }, [])
 
   // Lấy danh sách user từ Firestore (loại trừ chính user đang đăng nhập)
-  const fetchRealUsers = async () => {
-    if (!currentUser) return
-    try {
-      const usersSnapshot = await getDocs(collection(db, 'users'))
-      const realUsers: ChatUser[] = []
+  useEffect(() => {
+    if (!currentUser) {
+      setConversations([])
+      return
+    }
 
-      usersSnapshot.forEach((docSnap) => {
-        const data = docSnap.data() as any
-        if (docSnap.id !== currentUser.uid) {
-          let displayName = data.fullName || data.name || (data.email ? data.email.split('@')[0] : 'Thành viên')
-          let avatarUrl = data.profile || data.photoURL || data.avatar || ''
-          let userTitle = 'Thành viên trực tuyến'
+    const fetchRealUsers = async () => {
+      try {
+        const usersSnapshot = await getDocs(collection(db, 'users'))
+        const realUsers: ChatUser[] = []
 
-          if (data.email === 'purpleenglishai@gmail.com') {
-            displayName = 'englishai purple'
-            userTitle = 'Hệ thống hỗ trợ chính thức'
+        usersSnapshot.forEach((docSnap) => {
+          const data = docSnap.data() as any
+          if (docSnap.id !== currentUser.uid) {
+            let displayName = data.fullName || data.name || (data.email ? data.email.split('@')[0] : 'Thành viên')
+            let avatarUrl = data.profile || data.photoURL || data.avatar || ''
+            let userTitle = 'Thành viên trực tuyến'
+
+            if (data.email === 'purpleenglishai@gmail.com') {
+              displayName = 'englishai purple'
+              userTitle = 'Hệ thống hỗ trợ chính thức'
+            }
+
+            realUsers.push({
+              id: docSnap.id,
+              fullName: displayName,
+              username: data.username || displayName,
+              title: userTitle,
+              profile: avatarUrl,
+              messages: []
+            })
           }
+        })
 
+        if (realUsers.length === 0) {
           realUsers.push({
-            id: docSnap.id,
-            fullName: displayName,
-            username: data.username || displayName,
-            title: userTitle,
-            profile: avatarUrl,
+            id: 'purple_english_real',
+            fullName: 'englishai purple',
+            username: 'purpleenglishai',
+            title: 'Hệ thống hỗ trợ chính thức',
+            profile: '',
             messages: []
           })
         }
-      })
 
-      if (realUsers.length === 0) {
-        realUsers.push({
-          id: 'purple_english_real',
-          fullName: 'englishai purple',
-          username: 'purpleenglishai',
-          title: 'Hệ thống hỗ trợ chính thức',
-          profile: '',
-          messages: []
-        })
+        setConversations(realUsers)
+      } catch (error) {
+        console.error("Lỗi tải danh sách user thật:", error)
       }
-
-      setConversations(realUsers)
-    } catch (error) {
-      console.error("Lỗi tải danh sách user thật:", error)
     }
-  }
 
-  useEffect(() => {
     fetchRealUsers()
   }, [currentUser])
 
@@ -159,9 +161,9 @@ export function Chats() {
     alert(`Đã thêm thành công "${nameInput}" vào danh sách trò chuyện!`);
   }
 
-  // Xóa user khỏi danh sách hiển thị (và reset khung chat nếu đang chọn user đó)
+  // Xóa user khỏi danh sách hiển thị
   const handleDeleteUserFromList = (userId: string, event: React.MouseEvent) => {
-    event.stopPropagation(); // Ngăn việc bấm nút xóa mà lại kích hoạt chọn user
+    event.stopPropagation();
     if (!confirm("Bạn có chắc chắn muốn xóa thành viên này khỏi danh sách trò chuyện không?")) return;
 
     setConversations(prev => prev.filter(u => u.id !== userId));
@@ -326,7 +328,6 @@ export function Chats() {
                 </div>
 
                 <div className='flex items-center gap-1'>
-                  {/* Nút thêm user mới trực tiếp */}
                   <Button
                     size='icon'
                     variant='ghost'
@@ -406,7 +407,6 @@ export function Chats() {
                           </div>
                         </div>
 
-                        {/* Nút Xóa user khỏi danh sách */}
                         <Button
                           size='icon'
                           variant='ghost'
@@ -702,7 +702,3 @@ export function Chats() {
     </>
   )
 }
-
-export const Route = createFileRoute('/_authenticated/chats')({
-  component: Chats,
-})
