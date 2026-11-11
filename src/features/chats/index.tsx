@@ -64,7 +64,6 @@ export function Chats() {
   const docInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Tự động trôi xuống tin nhắn mới nhất
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -83,7 +82,7 @@ export function Chats() {
     return () => unsubscribeAuth()
   }, [])
 
-  // Lấy danh sách user thật và thông tin logo/tên chuẩn từ Firestore
+  // Lấy danh sách user thật và ánh xạ chuẩn tên "englishai purple" kèm logo thương hiệu
   useEffect(() => {
     if (!currentUser) {
       setConversations([])
@@ -98,37 +97,23 @@ export function Chats() {
         usersSnapshot.forEach((docSnap) => {
           const data = docSnap.data() as any
           if (docSnap.id !== currentUser.uid) {
-            // Lấy tên hiển thị chuẩn (ưu tiên fullName, sau đó name, nếu không có mới cắt email)
-            const displayName = data.fullName || data.name || (data.email ? data.email.split('@')[0] : 'Thành viên')
-            // Lấy đúng avatar / logo nếu có
-            const avatarUrl = data.profile || data.photoURL || data.avatar || ''
+            let displayName = data.fullName || data.name || (data.email ? data.email.split('@')[0] : 'Thành viên')
+            let avatarUrl = data.profile || data.photoURL || data.avatar || ''
+            let userTitle = 'Hoạt động gần đây'
+
+            // Cấu hình chuẩn xác cho tài khoản chính thức englishai purple
+            if (data.email === 'purpleenglishai@gmail.com') {
+              displayName = 'englishai purple'
+              userTitle = 'Hệ thống hỗ trợ chính thức'
+            }
 
             realUsers.push({
               id: docSnap.id,
               fullName: displayName,
               username: data.username || displayName,
-              title: data.title || 'Online',
+              title: userTitle,
               profile: avatarUrl,
               messages: []
-            })
-          }
-        })
-
-        // Bổ sung từ conversations nếu có
-        const convsQuery = query(collection(db, 'conversations'), orderBy('updatedAt', 'desc'))
-        const convsSnapshot = await getDocs(convsQuery)
-        
-        convsSnapshot.forEach((docSnap) => {
-          const data = docSnap.data() as any
-          const otherName = data.fullName || 'Thành viên hệ thống'
-          if (!realUsers.some(u => u.fullName === otherName) && docSnap.id !== currentUser.uid) {
-            realUsers.push({
-              id: docSnap.id,
-              fullName: otherName,
-              username: data.username || otherName,
-              title: data.title || 'Online',
-              profile: data.profile || '',
-              messages: data.messages || []
             })
           }
         })
@@ -136,7 +121,7 @@ export function Chats() {
         if (realUsers.length === 0) {
           realUsers.push({
             id: 'purple_english_real',
-            fullName: 'Purple English',
+            fullName: 'englishai purple',
             username: 'purpleenglishai',
             title: 'Hệ thống hỗ trợ chính thức',
             profile: '',
@@ -153,7 +138,7 @@ export function Chats() {
     fetchRealUsers()
   }, [currentUser])
 
-  // Lấy tin nhắn real-time
+  // Lấy tin nhắn real-time giữa 2 user
   useEffect(() => {
     if (!selectedUser?.id || !currentUser) return
 
@@ -217,20 +202,19 @@ export function Chats() {
     }
   }
 
-  // Gửi hình ảnh thực tế (Có giới hạn dung lượng 5MB bắt mua thêm dung lượng)
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !selectedUser?.id || !currentUser) return
+  // Gói lưu trữ chat & tài liệu: Cho phép dung lượng rộng rãi mặc định (1GB trong gói 499k), cảnh báo khi file > 50MB
+  const handleFileUpload = async (file: File, type: 'image' | 'doc') => {
+    if (!selectedUser?.id || !currentUser) return
 
-    // Hạn chế dung lượng file tối đa 5MB cho tài liệu/ảnh lưu trữ
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-    if (file.size > MAX_FILE_SIZE) {
-      alert("⚠️ Dung lượng file vượt quá giới hạn 5MB của gói miễn phí! Vui lòng nâng cấp thêm không gian lưu trữ (Storage Plan) để tiếp tục tải lên các tệp lớn.");
+    const MAX_DEFAULT_FILE_SIZE = 50 * 1024 * 1024; // 50MB cho phép trong gói tiêu chuẩn 499k
+    if (file.size > MAX_DEFAULT_FILE_SIZE) {
+      alert("⚠️ Tài liệu vượt quá giới hạn 50MB của gói tiêu chuẩn! Vui lòng nâng cấp các gói lưu trữ nâng cao (5GB/10GB/50GB) để tích hợp AI chuyên sâu.");
       return;
     }
 
     try {
-      const storageRef = ref(storage, `chat_images/${currentUser.uid}/${Date.now()}_${file.name}`)
+      const folder = type === 'image' ? 'chat_images' : 'chat_docs'
+      const storageRef = ref(storage, `${folder}/${currentUser.uid}/${Date.now()}_${file.name}`)
       await uploadBytes(storageRef, file)
       const downloadURL = await getDownloadURL(storageRef)
 
@@ -248,10 +232,12 @@ export function Chats() {
         })
       }
 
+      const messageContent = type === 'image' ? `[Hình ảnh]: ${downloadURL}` : `[Tài liệu]: ${file.name} - ${downloadURL}`
+
       await addDoc(collection(db, 'conversations', chatId, 'messages'), {
         senderId: currentUser.uid,
         sender: myName,
-        message: `[Hình ảnh]: ${downloadURL}`,
+        message: messageContent,
         timestamp: serverTimestamp()
       })
 
@@ -259,54 +245,8 @@ export function Chats() {
         updatedAt: serverTimestamp()
       })
     } catch (error) {
-      console.error("Lỗi tải lên hình ảnh lên Storage:", error)
-      alert("Không thể tải ảnh lên Firebase Storage. Vui lòng kiểm tra lại Storage Rules!")
-    }
-  }
-
-  // Gửi tài liệu thực tế (Có giới hạn 5MB)
-  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !selectedUser?.id || !currentUser) return
-
-    const MAX_FILE_SIZE = 5 * 1024 * 1024;
-    if (file.size > MAX_FILE_SIZE) {
-      alert("⚠️ Tài liệu vượt quá giới hạn 5MB! Vui lòng nâng cấp thêm không gian lưu trữ (Storage Plan) trên hệ thống.");
-      return;
-    }
-
-    try {
-      const storageRef = ref(storage, `chat_docs/${currentUser.uid}/${Date.now()}_${file.name}`)
-      await uploadBytes(storageRef, file)
-      const downloadURL = await getDownloadURL(storageRef)
-
-      const myName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Sinh Trần'
-      const chatId = [currentUser.uid, selectedUser.id].sort().join('_')
-      const convoRef = doc(db, 'conversations', chatId)
-
-      const docSnap = await getDoc(convoRef)
-      if (!docSnap.exists()) {
-        await setDoc(convoRef, {
-          participants: [currentUser.uid, selectedUser.id],
-          fullName: selectedUser.fullName,
-          profile: selectedUser.profile || '',
-          updatedAt: serverTimestamp()
-        })
-      }
-
-      await addDoc(collection(db, 'conversations', chatId, 'messages'), {
-        senderId: currentUser.uid,
-        sender: myName,
-        message: `[Tài liệu]: ${file.name} - ${downloadURL}`,
-        timestamp: serverTimestamp()
-      })
-
-      await updateDoc(convoRef, {
-        updatedAt: serverTimestamp()
-      })
-    } catch (error) {
-      console.error("Lỗi tải lên tài liệu lên Storage:", error)
-      alert("Không thể tải tài liệu lên Firebase Storage.")
+      console.error("Lỗi tải tệp lên Storage:", error)
+      alert("Không thể tải tệp lên hệ thống lưu trữ.")
     }
   }
 
@@ -383,9 +323,8 @@ export function Chats() {
             <ScrollArea className='-mx-3 h-full overflow-scroll p-3'>
               {filteredChatList.length > 0 ? (
                 filteredChatList.map((chatUsr) => {
-                  const { id, profile, username, messages, fullName } = chatUsr
-                  const lastConvo = messages && messages.length > 0 ? messages[messages.length - 1] : { sender: '', message: '' }
-                  const lastMsg = lastConvo.message || chatUsr.title || 'Chưa có tin nhắn'
+                  const { id, profile, username, fullName } = chatUsr
+                  const hasUnread = false // Trạng thái thông báo đẩy chấm đỏ tin nhắn mới
 
                   return (
                     <Fragment key={id}>
@@ -408,12 +347,15 @@ export function Chats() {
                               {getDisplayNameInitials(fullName) || 'SH'}
                             </AvatarFallback>
                           </Avatar>
+                          {hasUnread && (
+                            <span className='absolute left-7 top-0 size-3 rounded-full bg-purple-600 ring-2 ring-background' />
+                          )}
                           <div className='flex-1 overflow-hidden'>
                             <div className='flex justify-between items-center'>
                               <span className='font-medium block truncate'>{fullName}</span>
                             </div>
                             <span className='line-clamp-1 text-ellipsis text-muted-foreground group-hover:text-accent-foreground/90 text-xs'>
-                              {lastMsg}
+                              {chatUsr.title || 'Nhấn để trò chuyện'}
                             </span>
                           </div>
                         </div>
@@ -461,13 +403,12 @@ export function Chats() {
                         {selectedUser.fullName}
                       </span>
                       <span className='col-start-2 row-span-2 row-start-2 line-clamp-1 block max-w-32 text-xs text-nowrap text-ellipsis text-muted-foreground lg:max-w-none lg:text-sm'>
-                        {selectedUser.title || 'Online'}
+                        {selectedUser.title || 'Hệ thống trực tuyến'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Các nút gọi video, gọi thoại thực tế & menu cài đặt */}
                 <div className='-me-1 flex items-center gap-1 lg:gap-2 relative'>
                   <Button 
                     size='icon' 
@@ -499,7 +440,6 @@ export function Chats() {
                     <MoreVertical className='stroke-muted-foreground sm:size-5' />
                   </Button>
 
-                  {/* Menu thả xuống khi bấm nút 3 chấm */}
                   {showOptionsMenu && (
                     <div className='absolute right-0 top-12 z-50 w-52 rounded-md border bg-popover p-1 text-popover-foreground shadow-md'>
                       <button 
@@ -510,7 +450,7 @@ export function Chats() {
                       </button>
                       <button 
                         className='flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-destructive'
-                        onClick={() => { if(confirm("Xóa toàn bộ lịch sử trò chuyện phòng này?")) setRealtimeMessages([]); setShowOptionsMenu(false); }}
+                        onClick={() => { if(confirm("Xóa lịch sử trò chuyện?")) setRealtimeMessages([]); setShowOptionsMenu(false); }}
                       >
                         <Trash2 size={16} /> Xóa lịch sử trò chuyện
                       </button>
@@ -525,7 +465,7 @@ export function Chats() {
                 </div>
               </div>
 
-              {/* Conversation - Đã sửa lỗi trôi ngược chiều, tin nhắn mới tự động trôi xuống đáy */}
+              {/* Conversation */}
               <div className='flex flex-1 flex-col gap-2 rounded-md px-4 pt-0 pb-4'>
                 <div className='flex size-full flex-1'>
                   <div className='chat-text-container relative -me-4 flex flex-1 flex-col overflow-y-hidden'>
@@ -580,14 +520,14 @@ export function Chats() {
                     ref={imageInputRef} 
                     className="hidden" 
                     accept="image/*"
-                    onChange={handleImageUpload} 
+                    onChange={(e) => { const f = e.target.files?.[0]; if(f) handleFileUpload(f, 'image'); }} 
                   />
                   <input 
                     type="file" 
                     ref={docInputRef} 
                     className="hidden" 
                     accept=".pdf,.doc,.docx,.txt,.zip"
-                    onChange={handleDocUpload} 
+                    onChange={(e) => { const f = e.target.files?.[0]; if(f) handleFileUpload(f, 'doc'); }} 
                   />
 
                   <div className='flex flex-1 items-center gap-2 rounded-md border border-input bg-card px-2 py-1 focus-within:ring-1 focus-within:ring-ring focus-within:outline-hidden lg:gap-4'>
